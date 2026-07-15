@@ -1,0 +1,128 @@
+﻿<Window x:Class="dither_ex_machina.Controls.ColorPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Выбор цвета" Height="440" Width="580"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" SizeToContent="Height">
+    <Grid Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="25"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid x:Name="SVSquareContainer" Grid.Column="0" Width="256" Height="256" ClipToBounds="True">
+            <Rectangle x:Name="HueBackgroundRect"/>
+            <Rectangle>
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#FFFFFFFF" Offset="0"/>
+                        <GradientStop Color="#00FFFFFF" Offset="1"/>
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Rectangle>
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#00000000" Offset="0"/>
+                        <GradientStop Color="#FF000000" Offset="1"/>
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Canvas x:Name="SVMarkerCanvas" Background="Transparent" Cursor="Cross"
+                    MouseLeftButtonDown="SVSquare_MouseLeftButtonDown"
+                    MouseMove="SVSquare_MouseMove"
+                    MouseLeftButtonUp="SVSquare_MouseLeftButtonUp">
+                <Ellipse x:Name="SVMarkerOuter" Width="14" Height="14" Stroke="Black" StrokeThickness="2" IsHitTestVisible="False"/>
+                <Ellipse x:Name="SVMarkerInner" Width="10" Height="10" Stroke="White" StrokeThickness="2" IsHitTestVisible="False"/>
+            </Canvas>
+        </Grid>
+
+        <Grid x:Name="HueBarContainer" Grid.Column="1" Width="28" Height="256" Margin="12,0,0,0">
+            <Rectangle>
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#FFFF0000" Offset="0"/>
+                        <GradientStop Color="#FFFFFF00" Offset="0.1667"/>
+                        <GradientStop Color="#FF00FF00" Offset="0.3333"/>
+                        <GradientStop Color="#FF00FFFF" Offset="0.5"/>
+                        <GradientStop Color="#FF0000FF" Offset="0.6667"/>
+                        <GradientStop Color="#FFFF00FF" Offset="0.8333"/>
+                        <GradientStop Color="#FFFF0000" Offset="1"/>
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Canvas x:Name="HueMarkerCanvas" Background="Transparent" Cursor="SizeNS"
+                    MouseLeftButtonDown="HueBar_MouseLeftButtonDown"
+                    MouseMove="HueBar_MouseMove"
+                    MouseLeftButtonUp="HueBar_MouseLeftButtonUp">
+                <Polygon x:Name="HueMarkerLeft" Points="0,0 9,5 0,10" Fill="Black" IsHitTestVisible="False"/>
+                <Polygon x:Name="HueMarkerRight" Points="0,5 9,0 9,10" Fill="Black" IsHitTestVisible="False"/>
+            </Canvas>
+        </Grid>
+
+        <StackPanel Grid.Column="3" VerticalAlignment="Top">
+            <TextBlock Text="Образцы" FontWeight="Bold" Margin="0,0,0,5"/>
+            <Grid Width="130" Height="60">
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" x:Name="NewColorSwatch" BorderBrush="Gray" BorderThickness="1,1,1,0"/>
+                <Border Grid.Row="1" x:Name="CurrentColorSwatch" BorderBrush="Gray" BorderThickness="1"/>
+            </Grid>
+            <TextBlock Text="новый / текущий" Foreground="Gray" FontSize="11" Margin="0,3,0,15"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="24"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="14"/>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="14"/>
+                    <RowDefinition Height="30"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="H:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Grid.Column="1" x:Name="HTextBox" Width="80" HorizontalAlignment="Left"
+                         LostFocus="HsvTextBox_LostFocus" KeyDown="HsvTextBox_KeyDown"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="S:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1" Grid.Column="1" x:Name="STextBox" Width="80" HorizontalAlignment="Left"
+                         LostFocus="HsvTextBox_LostFocus" KeyDown="HsvTextBox_KeyDown"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="V:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="2" Grid.Column="1" x:Name="VTextBox" Width="80" HorizontalAlignment="Left"
+                         LostFocus="HsvTextBox_LostFocus" KeyDown="HsvTextBox_KeyDown"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="R:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="4" Grid.Column="1" x:Name="RTextBox" Width="80" HorizontalAlignment="Left"
+                         LostFocus="RgbTextBox_LostFocus" KeyDown="RgbTextBox_KeyDown"/>
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="G:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="5" Grid.Column="1" x:Name="GTextBox" Width="80" HorizontalAlignment="Left"
+                         LostFocus="RgbTextBox_LostFocus" KeyDown="RgbTextBox_KeyDown"/>
+
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="B:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="6" Grid.Column="1" x:Name="BTextBox" Width="80" HorizontalAlignment="Left"
+                         LostFocus="RgbTextBox_LostFocus" KeyDown="RgbTextBox_KeyDown"/>
+
+                <TextBlock Grid.Row="8" Grid.Column="0" Text="#" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="8" Grid.Column="1" x:Name="HexTextBox" Width="100" HorizontalAlignment="Left"
+                         LostFocus="HexTextBox_LostFocus" KeyDown="HexTextBox_KeyDown"/>
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,25,0,0">
+                <Button Content="OK" Width="80" Click="OkButton_Click" IsDefault="True"/>
+                <Button Content="Отмена" Width="80" Click="CancelButton_Click" IsCancel="True"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Window>
