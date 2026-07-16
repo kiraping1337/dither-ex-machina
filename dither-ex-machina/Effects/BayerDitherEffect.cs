@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace dither_ex_machina.Effects
 {
@@ -28,7 +29,7 @@ namespace dither_ex_machina.Effects
             Supersample = 1,
             Invert = false
         };
-        private static readonly Dictionary<int, int[,]> _matrixCache = new();
+        private static readonly ConcurrentDictionary<int, int[,]> _matrixCache = new();
 
         public byte ComputePixel(EffectPixelContext ctx)
         {
@@ -53,12 +54,7 @@ namespace dither_ex_machina.Effects
 
         private static int[,] GetMatrix(int n)
         {
-            if (_matrixCache.TryGetValue(n, out var cached))
-                return cached;
-
-            var matrix = GenerateBayerMatrix(n);
-            _matrixCache[n] = matrix;
-            return matrix;
+            return _matrixCache.GetOrAdd(n, GenerateBayerMatrix);
         }
 
         private static int[,] GenerateBayerMatrix(int size)
