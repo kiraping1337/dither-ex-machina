@@ -1,4 +1,5 @@
 # Dither Ex Machina
+
 [![Download](https://img.shields.io/badge/Download-Latest%20Release-2ea44f?style=for-the-badge&logo=github)](https://github.com/kiraping1337/dither-ex-machina/releases)
 
 > Десктопное приложение на **WPF (.NET)** для обработки изображений с использованием различных алгоритмов дизеринга и стилизации.
@@ -26,6 +27,8 @@
   - Halftone
   - Crosshatch
   - Contour Lines
+  - Contour Modulation
+  - Oscilloscope
 
 - 🎴 Настраиваемая карта градиента
 
@@ -86,6 +89,22 @@
 ![CrossHatch](img/crosshatch.jpg)
 
 ---
+
+### Oscilloscope
+
+Искажает сетку параллельных линий на основе карты яркости изображения, создавая объёмный рельеф.
+
+Эффект напоминает сигналы осциллографа, CRT-дисплеи и 3D-сканы в стиле ретрофутуризма.
+
+## ![Oscilloscope](img/oscilloscope.jpg)
+
+### Contour Modulation
+
+Внедряет изолинии яркости в структуру дизеринга, модулируя порог квантования вдоль контуров объекта.
+
+Эффект напоминает оттиски на банкнотах и книжные иллюстрации.
+
+![Contour Modulation](img/contour_modulation.jpg)
 
 ## Структура проекта
 
