@@ -9,7 +9,7 @@ namespace dither_ex_machina.Effects
 {
     public class ContourLinesEffect : IDitherEffect
     {
-        public string DisplayName => "Изолинии (Contour)";
+        public string DisplayName => "Contour Lines (Изолинии)";
 
         public IReadOnlyList<ParameterDefinition> Parameters { get; } = new List<ParameterDefinition>
         {

@@ -31,9 +31,11 @@ namespace dither_ex_machina
         {
             new BayerDitherEffect(),
             new ErrorDiffusionEffect(),
+            new IsolinesModulation(),
             new ContourLinesEffect(),
             new HalftoneEffect(),
             new CrosshatchEffect(),
+            new OscilloscopeEffect(),
         };
 
         private readonly Dictionary<string, double> _currentEffectParams = new();
