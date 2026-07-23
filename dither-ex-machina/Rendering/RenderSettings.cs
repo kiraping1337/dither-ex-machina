@@ -17,5 +17,9 @@ namespace dither_ex_machina.Rendering
         public double HighlightCutoff { get; set; }
         public int Supersample { get; set; }
         public bool Invert { get; set; }
+        public bool GlowEnabled { get; set; }
+        public int GlowRadius { get; set; }
+        public double GlowThreshold { get; set; }
+        public double GlowIntensity { get; set; }
     }
 }

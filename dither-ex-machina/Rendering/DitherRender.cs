@@ -98,6 +98,11 @@ namespace dither_ex_machina.Rendering
             byte[] grayOutput = ImageOps.DownsampleGray(hiRes, sw, sh, width, height, supersample);
             hiRes = null;
 
+            if (settings.GlowEnabled)
+            {
+                grayOutput = ImageOps.ApplyGlow(grayOutput, width, height, settings.GlowRadius, settings.GlowThreshold, settings.GlowIntensity);
+            }
+
             return gradientLut.HasValue
                 ? ImageOps.ApplyGradientLut(grayOutput, width, height, gradientLut.Value.r, gradientLut.Value.g, gradientLut.Value.b)
                 : ImageOps.GrayToBgra(grayOutput, width, height);
@@ -182,6 +187,11 @@ namespace dither_ex_machina.Rendering
 
                 byte[] tileGray = ImageOps.DownsampleGray(tileHiRes, validSsW, validSsH, srcW, srcH, supersample, useParallel: false);
                 tileHiRes = null;
+
+                if (settings.GlowEnabled)
+                {
+                    tileGray = ImageOps.ApplyGlow(tileGray, srcW, srcH, settings.GlowRadius, settings.GlowThreshold, settings.GlowIntensity);
+                }
 
                 int dstBaseY = srcY;
                 int dstBaseX = srcX;

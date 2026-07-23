@@ -350,5 +350,32 @@ namespace dither_ex_machina.Rendering
 
             return output;
         }
+
+        //эффект Glow
+        public static byte[] ApplyGlow(byte[] gray, int width, int height, int radius, double threshold, double intensity)
+        {
+            if (radius <= 0 || intensity <= 0) return gray;
+
+            byte[] blurred = BoxBlur(gray, width, height, radius);
+            byte[] output = new byte[gray.Length];
+
+            Parallel.For(0, gray.Length, ParallelOptions, i =>
+            {
+                byte b = blurred[i];
+                double diff = b / 255.0 - threshold;
+                if (diff > 0)
+                {
+                    double add = diff * intensity * 255;
+                    int v = gray[i] + (int)add;
+                    output[i] = (byte)(v > 255 ? 255 : v);
+                }
+                else
+                {
+                    output[i] = gray[i];
+                }
+            });
+
+            return output;
+        }
     }
 }

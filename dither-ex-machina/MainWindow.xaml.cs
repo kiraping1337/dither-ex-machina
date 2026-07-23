@@ -134,6 +134,8 @@ namespace dither_ex_machina
             SupersampleSlider.Value = defaults.Supersample;
             InvertCheckBox.IsChecked = defaults.Invert;
 
+            GlowControlsPanel.Visibility = GlowEnabledCheckBox.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+
             MedianRadiusSlider.ValueChanged += Param_Changed;
             BlurRadiusSlider.ValueChanged += Param_Changed;
             CutoffSlider.ValueChanged += Param_Changed;
@@ -199,6 +201,13 @@ namespace dither_ex_machina
             RequestRender();
         }
 
+        private void GlowEnabledCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            bool enabled = GlowEnabledCheckBox.IsChecked == true;
+            GlowControlsPanel.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+            RequestRender();
+        }
+
         private void GradientEditor_GradientChanged(object sender, EventArgs e)
         {
             RequestRender();
@@ -239,7 +248,11 @@ namespace dither_ex_machina
                 ShadowCutoff = CutoffSlider.Value,
                 HighlightCutoff = HighlightCutoffSlider.Value,
                 Supersample = (int)SupersampleSlider.Value,
-                Invert = InvertCheckBox.IsChecked == true
+                Invert = InvertCheckBox.IsChecked == true,
+                GlowEnabled = GlowEnabledCheckBox.IsChecked == true,
+                GlowRadius = (int)GlowRadiusSlider.Value,
+                GlowThreshold = GlowThresholdSlider.Value,
+                GlowIntensity = GlowIntensitySlider.Value
             };
         }
 
@@ -266,6 +279,13 @@ namespace dither_ex_machina
 
             int width = _width, height = _height;
             byte[] gray = _grayscale;
+
+            if (settings.GlowEnabled)
+            {
+                int refSize = Math.Max(width, height);
+                double scale = Math.Max(1.0, refSize / 1000.0);
+                settings.GlowRadius = Math.Max(1, (int)(settings.GlowRadius * scale));
+            }
 
             try
             {
