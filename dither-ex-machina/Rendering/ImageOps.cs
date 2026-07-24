@@ -234,6 +234,45 @@ namespace dither_ex_machina.Rendering
             return upsampled;
         }
 
+        public static byte[] DownsampleBilinear(byte[] gray, int width, int height, int dw, int dh)
+        {
+            byte[] output = new byte[dw * dh];
+            if (dw == 0 || dh == 0) return output;
+
+            double scaleX = (double)width / dw;
+            double scaleY = (double)height / dh;
+
+            Parallel.For(0, dh, ParallelOptions, dy =>
+            {
+                double srcY = dy * scaleY;
+                int y0 = (int)srcY;
+                if (y0 >= height - 1) y0 = height - 2;
+                int y1 = y0 + 1;
+                double fy = srcY - y0;
+
+                int row0 = y0 * width;
+                int row1 = y1 * width;
+
+                for (int dx = 0; dx < dw; dx++)
+                {
+                    double srcX = dx * scaleX;
+                    int x0 = (int)srcX;
+                    if (x0 >= width - 1) x0 = width - 2;
+                    int x1 = x0 + 1;
+                    double fx = srcX - x0;
+
+                    double v = gray[row0 + x0] * (1 - fx) * (1 - fy) +
+                               gray[row0 + x1] * fx * (1 - fy) +
+                               gray[row1 + x0] * (1 - fx) * fy +
+                               gray[row1 + x1] * fx * fy;
+
+                    output[dy * dw + dx] = (byte)Math.Round(Math.Clamp(v, 0, 255));
+                }
+            });
+
+            return output;
+        }
+
         //контрастная сигмоида
         public static double ApplyContrastCurve(double x, double center, double steepness)
         {

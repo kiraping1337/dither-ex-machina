@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -25,7 +26,13 @@ namespace dither_ex_machina
         private int _width;
         private int _height;
 
-        private WriteableBitmap _outputBitmap;
+        private WriteableBitmap _fullResBitmap;
+        private WriteableBitmap _displayBitmap;
+        private double _previewResolutionScale = 1.0;
+
+        private bool _isPanning;
+        private Point _panStart;
+
         private CancellationTokenSource _cts;
         private DispatcherTimer _timer;
 
@@ -54,6 +61,74 @@ namespace dither_ex_machina
 
             ModeComboBox.ItemsSource = _effects;
             ModeComboBox.SelectedIndex = 0;
+        }
+
+        private void PreviewBorder_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (_displayBitmap == null) return;
+
+            Point posInImage = e.GetPosition(PreviewImage);
+
+            double oldScale = PreviewScale.ScaleX;
+            double zoomFactor = e.Delta > 0 ? 1.1 : 1.0 / 1.1;
+            double newScale = Math.Max(0.1, Math.Min(20, oldScale * zoomFactor));
+
+            Point worldPoint = new Point(
+                (posInImage.X - PreviewTranslate.X) / oldScale,
+                (posInImage.Y - PreviewTranslate.Y) / oldScale);
+
+            PreviewScale.ScaleX = newScale;
+            PreviewScale.ScaleY = newScale;
+            PreviewTranslate.X = posInImage.X - worldPoint.X * newScale;
+            PreviewTranslate.Y = posInImage.Y - worldPoint.Y * newScale;
+
+            e.Handled = true;
+        }
+
+        private void PreviewBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (_displayBitmap == null) return;
+            _isPanning = true;
+            _panStart = e.GetPosition(this);
+            ((Border)sender).CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void PreviewBorder_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_isPanning)
+            {
+                _isPanning = false;
+                Mouse.Capture(null);
+            }
+        }
+
+        private void PreviewBorder_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_isPanning) return;
+
+            Point currentPos = e.GetPosition(this);
+            Vector delta = currentPos - _panStart;
+            _panStart = currentPos;
+
+            PreviewTranslate.X += delta.X;
+            PreviewTranslate.Y += delta.Y;
+        }
+
+        private void ResetZoomButton_Click(object sender, RoutedEventArgs e)
+        {
+            PreviewScale.ScaleX = 1;
+            PreviewScale.ScaleY = 1;
+            PreviewTranslate.X = 0;
+            PreviewTranslate.Y = 0;
+        }
+
+        private void PreviewResolutionSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_grayscale == null) return;
+
+            _previewResolutionScale = e.NewValue;
+            RequestRender();
         }
 
         //загрузка изображения
@@ -116,8 +191,17 @@ namespace dither_ex_machina
                 _grayscale[i] = (byte)(0.299 * r + 0.587 * g + 0.114 * b);
             }
 
-            _outputBitmap = new WriteableBitmap(_width, _height, 96, 96, PixelFormats.Bgra32, null);
-            PreviewImage.Source = _outputBitmap;
+            _fullResBitmap = new WriteableBitmap(_width, _height, 96, 96, PixelFormats.Bgra32, null);
+            _displayBitmap = _fullResBitmap;
+            PreviewImage.Source = _displayBitmap;
+
+            PreviewScale.ScaleX = 1;
+            PreviewScale.ScaleY = 1;
+            PreviewTranslate.X = 0;
+            PreviewTranslate.Y = 0;
+
+            _previewResolutionScale = 1.0;
+            PreviewResolutionSlider.Value = 1.0;
 
             RequestRender();
         }
@@ -307,6 +391,13 @@ namespace dither_ex_machina
                 settings.GlowRadius = Math.Max(1, (int)(settings.GlowRadius * scale));
             }
 
+            if (_previewResolutionScale < 1.0)
+            {
+                width = Math.Max(1, (int)(_width * _previewResolutionScale));
+                height = Math.Max(1, (int)(_height * _previewResolutionScale));
+                gray = ImageOps.DownsampleBilinear(_grayscale, _width, _height, width, height);
+            }
+
             try
             {
                 byte[] result = await Task.Run(() =>
@@ -315,9 +406,32 @@ namespace dither_ex_machina
 
                 if (token.IsCancellationRequested) return;
 
-                _outputBitmap.WritePixels(
-                    new Int32Rect(0, 0, width, height),
-                    result, width * 4, 0);
+                if (_previewResolutionScale < 1.0)
+                {
+                    if (_displayBitmap == null || _displayBitmap.PixelWidth != width || _displayBitmap.PixelHeight != height)
+                    {
+                        _displayBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+                        PreviewImage.Source = _displayBitmap;
+                    }
+
+                    _displayBitmap.WritePixels(
+                        new Int32Rect(0, 0, width, height),
+                        result, width * 4, 0);
+                }
+                else
+                {
+                    if (_fullResBitmap == null || _fullResBitmap.PixelWidth != _width || _fullResBitmap.PixelHeight != _height)
+                    {
+                        _fullResBitmap = new WriteableBitmap(_width, _height, 96, 96, PixelFormats.Bgra32, null);
+                    }
+
+                    _fullResBitmap.WritePixels(
+                        new Int32Rect(0, 0, _width, _height),
+                        result, _width * 4, 0);
+
+                    _displayBitmap = _fullResBitmap;
+                    PreviewImage.Source = _displayBitmap;
+                }
             }
             catch (OperationCanceledException)
             {
@@ -326,15 +440,55 @@ namespace dither_ex_machina
 
         //сохранение
 
-        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        private async void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_outputBitmap == null) return;
+            if (_fullResBitmap == null && _displayBitmap == null) return;
 
             var dlg = new SaveFileDialog
             {
                 Filter = "PNG|*.png|JPEG|*.jpg;*.jpeg;*.jpe|BMP|*.bmp|WebP|*.webp"
             };
             if (dlg.ShowDialog() != true) return;
+
+            byte[] gradientLutR = null, gradientLutG = null, gradientLutB = null;
+            if (GradientMapEnabledCheckBox.IsChecked == true)
+            {
+                var stops = GradientEditor.GetStops();
+                if (stops.Count >= 2)
+                {
+                    var lut = new ColorGradient(stops).BuildLut();
+                    gradientLutR = lut.r;
+                    gradientLutG = lut.g;
+                    gradientLutB = lut.b;
+                }
+            }
+
+            if (_previewResolutionScale < 1.0)
+            {
+                var settings = GetCurrentSettings();
+                var effectParams = new Dictionary<string, double>(_currentEffectParams);
+                var effect = ModeComboBox.SelectedItem as IDitherEffect;
+
+                (byte[] r, byte[] g, byte[] b)? gradientLut = null;
+                if (gradientLutR != null)
+                {
+                    gradientLut = (gradientLutR, gradientLutG, gradientLutB);
+                }
+
+                byte[] result = await Task.Run(() =>
+                    DitherRenderer.Render(_grayscale, _width, _height, settings, effect, effectParams, gradientLut, CancellationToken.None));
+
+                if (_fullResBitmap == null || _fullResBitmap.PixelWidth != _width || _fullResBitmap.PixelHeight != _height)
+                {
+                    _fullResBitmap = new WriteableBitmap(_width, _height, 96, 96, PixelFormats.Bgra32, null);
+                }
+
+                _fullResBitmap.WritePixels(
+                    new Int32Rect(0, 0, _width, _height),
+                    result, _width * 4, 0);
+            }
+
+            WriteableBitmap bitmapToSave = _fullResBitmap;
 
             string ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
             BitmapEncoder encoder = ext switch
@@ -347,14 +501,14 @@ namespace dither_ex_machina
 
             if (ext == ".webp")
             {
-                int width = _outputBitmap.PixelWidth;
-                int height = _outputBitmap.PixelHeight;
+                int width = bitmapToSave.PixelWidth;
+                int height = bitmapToSave.PixelHeight;
                 int stride = width * 4;
                 byte[] pixels = new byte[stride * height];
-                _outputBitmap.CopyPixels(pixels, stride, 0);
+                bitmapToSave.CopyPixels(pixels, stride, 0);
 
                 using var stream = new FileStream(dlg.FileName, FileMode.Create);
-                var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+                var handle = System.Runtime.InteropServices.GCHandle.Alloc(pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
                 try
                 {
                     using var image = SKImage.FromPixels(new SKImageInfo(width, height, SKColorType.Bgra8888), handle.AddrOfPinnedObject());
@@ -368,7 +522,7 @@ namespace dither_ex_machina
             }
             else
             {
-                encoder.Frames.Add(BitmapFrame.Create(_outputBitmap));
+                encoder.Frames.Add(BitmapFrame.Create(bitmapToSave));
 
                 using (var fs = new FileStream(dlg.FileName, FileMode.Create))
                 {
