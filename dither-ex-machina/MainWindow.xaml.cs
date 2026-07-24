@@ -3,9 +3,11 @@ using dither_ex_machina.Effects;
 using dither_ex_machina.Models;
 using dither_ex_machina.Rendering;
 using Microsoft.Win32;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -59,7 +61,7 @@ namespace dither_ex_machina
         {
             var dlg = new OpenFileDialog
             {
-                Filter = "Изображения|*.png;*.jpg;*.jpeg;*.bmp"
+                Filter = "Изображения|*.png;*.jpg;*.jpeg;*.jpe;*.bmp;*.webp"
             };
             if (dlg.ShowDialog() != true) return;
 
@@ -68,24 +70,42 @@ namespace dither_ex_machina
 
         private void LoadImage(string path)
         {
-            BitmapImage bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.UriSource = new Uri(path);
-            bmp.EndInit();
+            string ext = Path.GetExtension(path).ToLowerInvariant();
+            BitmapSource source;
 
-            FormatConvertedBitmap converted = new FormatConvertedBitmap();
-            converted.BeginInit();
-            converted.Source = bmp;
-            converted.DestinationFormat = PixelFormats.Bgra32;
-            converted.EndInit();
+            if (ext == ".webp")
+            {
+                using var bitmap = SKBitmap.Decode(path);
+                int w = bitmap.Width;
+                int h = bitmap.Height;
+                byte[] imgPixels = new byte[w * h * 4];
+                Marshal.Copy(bitmap.GetPixels(), imgPixels, 0, imgPixels.Length);
 
-            _width = converted.PixelWidth;
-            _height = converted.PixelHeight;
+                source = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, imgPixels, w * 4);
+            }
+            else
+            {
+                BitmapImage bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.UriSource = new Uri(path);
+                bmp.EndInit();
+
+                FormatConvertedBitmap converted = new FormatConvertedBitmap();
+                converted.BeginInit();
+                converted.Source = bmp;
+                converted.DestinationFormat = PixelFormats.Bgra32;
+                converted.EndInit();
+
+                source = converted;
+            }
+
+            _width = source.PixelWidth;
+            _height = source.PixelHeight;
 
             int stride = _width * 4;
             byte[] pixels = new byte[stride * _height];
-            converted.CopyPixels(pixels, stride, 0);
+            source.CopyPixels(pixels, stride, 0);
 
             _grayscale = new byte[_width * _height];
             for (int i = 0, p = 0; p < pixels.Length; p += 4, i++)
@@ -312,19 +332,48 @@ namespace dither_ex_machina
 
             var dlg = new SaveFileDialog
             {
-                Filter = "PNG|*.png|JPEG|*.jpg"
+                Filter = "PNG|*.png|JPEG|*.jpg;*.jpeg;*.jpe|BMP|*.bmp|WebP|*.webp"
             };
             if (dlg.ShowDialog() != true) return;
 
-            BitmapEncoder encoder = dlg.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
-                ? new JpegBitmapEncoder()
-                : (BitmapEncoder)new PngBitmapEncoder();
-
-            encoder.Frames.Add(BitmapFrame.Create(_outputBitmap));
-
-            using (var fs = new FileStream(dlg.FileName, FileMode.Create))
+            string ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
+            BitmapEncoder encoder = ext switch
             {
-                encoder.Save(fs);
+                ".jpg" or ".jpeg" or ".jpe" => new JpegBitmapEncoder(),
+                ".bmp" => new BmpBitmapEncoder(),
+                ".webp" => null,
+                _ => new PngBitmapEncoder()
+            };
+
+            if (ext == ".webp")
+            {
+                int width = _outputBitmap.PixelWidth;
+                int height = _outputBitmap.PixelHeight;
+                int stride = width * 4;
+                byte[] pixels = new byte[stride * height];
+                _outputBitmap.CopyPixels(pixels, stride, 0);
+
+                using var stream = new FileStream(dlg.FileName, FileMode.Create);
+                var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+                try
+                {
+                    using var image = SKImage.FromPixels(new SKImageInfo(width, height, SKColorType.Bgra8888), handle.AddrOfPinnedObject());
+                    using var data = image.Encode(SKEncodedImageFormat.Webp, 80);
+                    data.SaveTo(stream);
+                }
+                finally
+                {
+                    handle.Free();
+                }
+            }
+            else
+            {
+                encoder.Frames.Add(BitmapFrame.Create(_outputBitmap));
+
+                using (var fs = new FileStream(dlg.FileName, FileMode.Create))
+                {
+                    encoder.Save(fs);
+                }
             }
         }
     }

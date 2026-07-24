@@ -14,5 +14,9 @@
     <Content Include="logo.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="4.150.1" />
+  </ItemGroup>
+
 
 </Project>

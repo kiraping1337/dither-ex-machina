@@ -20,6 +20,7 @@
   - PNG
   - JPG / JPEG
   - BMP
+  - WebP
 
 - 🔧 Несколько алгоритмов обработки
   - Bayer Dithering
@@ -37,6 +38,10 @@
 - 👀 Предпросмотр результата
 
 - 💾 Сохранение обработанного изображения
+  - PNG
+  - JPEG
+  - BMP
+  - WebP
 
 ---
 
@@ -131,6 +136,7 @@ dither-ex-machina
 - WPF
 - .NET
 - XAML
+- SkiaSharp
 
 ---
 
