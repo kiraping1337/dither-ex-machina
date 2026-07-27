@@ -5,141 +5,387 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:dither_ex_machina"
         xmlns:controls="clr-namespace:dither_ex_machina.Controls"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
-        Title="Dither Ex Machina" Height="800" Width="1100">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="300"/>
-        </Grid.ColumnDefinitions>
+        Title="Dither Ex Machina" Height="820" Width="1100"
+        MinWidth="780" MinHeight="520"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanResize"
+        StateChanged="Window_StateChanged">
 
-        <Border Grid.Column="0" Background="#222" Margin="5" ClipToBounds="True"
-                MouseWheel="PreviewBorder_MouseWheel"
-                MouseLeftButtonDown="PreviewBorder_MouseLeftButtonDown"
-                MouseLeftButtonUp="PreviewBorder_MouseLeftButtonUp"
-                MouseMove="PreviewBorder_MouseMove">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="56"
+                             GlassFrameThickness="0"
+                             ResizeBorderThickness="6"
+                             UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Grid x:Name="RootGrid">
+
+        <!--КАРТОЧКА ОКНА-->
+        <Border x:Name="CardBorder"
+                Background="{StaticResource BrushBlack}"
+                BorderBrush="{StaticResource BrushTurquoise}"
+                BorderThickness="1"
+                CornerRadius="10"
+                SizeChanged="CardBorder_SizeChanged">
             <Grid>
-                <Image x:Name="PreviewImage" Stretch="Uniform">
-                    <Image.RenderTransform>
-                        <TransformGroup>
-                            <ScaleTransform x:Name="PreviewScale" ScaleX="1" ScaleY="1"/>
-                            <TranslateTransform x:Name="PreviewTranslate"/>
-                        </TransformGroup>
-                    </Image.RenderTransform>
-                </Image>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="45"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8">
-                    <Button Content="Сбросить масштаб" Click="ResetZoomButton_Click" Padding="6,2" Margin="0,0,6,0"/>
-                    <StackPanel>
-                        <TextBlock Text="Превью:" Foreground="White" FontSize="10" Margin="0,0,0,1"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Slider x:Name="PreviewResolutionSlider"
-                                    Minimum="0.1" Maximum="1" Value="1"
-                                    Height="16" Margin="0"
-                                    ValueChanged="PreviewResolutionSlider_ValueChanged"/>
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding ElementName=PreviewResolutionSlider, Path=Value, StringFormat=P0}"
-                                       Margin="4,0,0,0" VerticalAlignment="Center" Foreground="White" FontSize="11"/>
-                        </Grid>
+                <!--ЗАГОЛОВОК-->
+                <Grid Grid.Row="0">
+                    <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="18,5,0,0">
+                        <TextBlock Text="DITHER EX MACHINA"
+                                   FontFamily="{StaticResource TitleFont}"
+                                   FontStyle="Italic"
+                                   Foreground="{DynamicResource BrushSliderThumbHover}"
+                                   FontSize="27"
+                                   Margin="-2,-2,0,0"/>
+
+                        <TextBlock Text="DITHER EX MACHINA"
+                                   FontFamily="{StaticResource TitleFont}"
+                                   FontStyle="Italic"
+                                   Foreground="{DynamicResource BrushWhite}"
+                                   FontSize="27"/>
+                    </Grid>
+
+                    <!--ЛОГОТИП-->
+                    <Grid x:Name="EyeLogo"
+                          Width="80" Height="32"
+                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                          IsHitTestVisible="False">
+
+                        <Canvas Width="80" Height="32" Margin="0,0,0,-5">
+
+                            <!-- Верхнее веко -->
+                            <Path x:Name="EyelidTop"
+                                  Stroke="{StaticResource BrushTurquoise}"
+                                  StrokeThickness="2"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  Fill="Transparent"/>
+
+                            <!-- Нижнее веко -->
+                            <Path x:Name="EyelidBottom"
+                                  Stroke="{StaticResource BrushTurquoise}"
+                                  StrokeThickness="2"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  Fill="Transparent"/>
+
+                            <!-- Зрачок -->
+                            <Canvas x:Name="PupilCanvas" Width="80" Height="32">
+                                <Path x:Name="EyePupil"
+                                      Fill="{StaticResource BrushTurquoise}"
+                                      Opacity="0"
+                                      RenderTransformOrigin="0.5,0.5"
+                                      Data="F0 M31,16 A9,9 0 1 0 49,16 A9,9 0 1 0 31,16 Z
+                                            M36,16 A4,4 0 1 0 44,16 A4,4 0 1 0 36,16 Z">
+                                    <Path.RenderTransform>
+                                        <TransformGroup>
+                                            <ScaleTransform x:Name="EyePupilScaleTransform"/>
+                                            <TranslateTransform x:Name="EyePupilTransform"/>
+                                        </TransformGroup>
+                                    </Path.RenderTransform>
+                                </Path>
+                            </Canvas>
+
+                        </Canvas>
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,-5">
+                        <Button x:Name="MinimizeButton"
+                                Style="{StaticResource CaptionButtonStyle}"
+                                Click="MinimizeButton_Click"
+                                shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                            <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconWrap}"
+                                      Fill="{DynamicResource BrushTurquoise}"
+                                      Width="20" Height="20"
+                                      Stretch="Uniform"
+                                      VerticalAlignment="Center"
+                                      Margin="-1,0,1,0"/>
+                                <Path Data="{StaticResource IconWrap}"
+                                      Fill="{DynamicResource BrushWhite}"
+                                      Width="20" Height="20"
+                                      Stretch="Uniform"
+                                      VerticalAlignment="Top" Margin="0,14,0,0"/>
+
+                            </Grid>
+                        </Button>
+                        <Button x:Name="MaximizeButton"
+                                Style="{StaticResource CaptionButtonStyle}"
+                                Click="MaximizeRestoreButton_Click"
+                                shell:WindowChrome.IsHitTestVisibleInChrome="True">
+
+                            <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconUnWrap}"
+                                      Fill="{DynamicResource BrushTurquoise}"
+                                      Width="20" Height="20"
+                                      Stretch="Uniform"
+                                      VerticalAlignment="Top"
+                                      Margin="-2,-2,0,0"/>
+                                <Path Data="{StaticResource IconUnWrap}"
+                                      Fill="{DynamicResource BrushWhite}"
+                                      Width="20" Height="20"
+                                      Stretch="Uniform"
+                                      VerticalAlignment="Top"/>
+                            </Grid>
+                        </Button>
+                        <Button x:Name="CloseButton"
+                                Style="{StaticResource CaptionCloseButtonStyle}"
+                                Click="CloseButton_Click"
+                                shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                            <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconExit}"
+                                      Fill="{DynamicResource BrushTurquoise}"
+                                      Width="20" Height="20"
+                                      Stretch="Uniform"
+                                      VerticalAlignment="Top" RenderTransformOrigin="0.517,0.483"
+                                      Margin="-2,-2,0,0"/>
+                                <Path Data="{StaticResource IconExit}"
+                                      Fill="{DynamicResource BrushWhite}"
+                                      Width="20" Height="20"
+                                      Stretch="Uniform"
+                                      VerticalAlignment="Top" RenderTransformOrigin="0.517,0.483"/>
+                            </Grid>
+                        </Button>
                     </StackPanel>
-                </StackPanel>
+                </Grid>
+
+                <!--ОСНОВНОЙ КОНТЕНТ-->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="320"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Background="{StaticResource BrushBlack}"
+                            BorderBrush="{StaticResource BrushTurquoise}" BorderThickness="1"
+                            CornerRadius="10"
+                            Margin="8">
+                        <Grid x:Name="PreviewClipGrid" SizeChanged="PreviewClipGrid_SizeChanged"
+                              Background="Transparent"
+                              MouseWheel="PreviewBorder_MouseWheel"
+                              MouseLeftButtonDown="PreviewBorder_MouseLeftButtonDown"
+                              MouseLeftButtonUp="PreviewBorder_MouseLeftButtonUp"
+                              MouseMove="PreviewBorder_MouseMove">
+                            <Image x:Name="PreviewImage" Stretch="Uniform">
+                                <Image.RenderTransform>
+                                    <TransformGroup>
+                                        <ScaleTransform x:Name="PreviewScale" ScaleX="1" ScaleY="1"/>
+                                        <TranslateTransform x:Name="PreviewTranslate"/>
+                                    </TransformGroup>
+                                </Image.RenderTransform>
+                            </Image>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                                        VerticalAlignment="Top" Margin="10">
+                                <Button Click="ResetZoomButton_Click"
+                                         Margin="0,0,10,0"
+                                        controls:ButtonChrome.CornerRadius="4">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
+                                            <Path Data="{StaticResource IconResetScale}"
+                                                  Fill="{DynamicResource BrushTurquoise}"
+                                                  Width="20" Height="20"
+                                                  Stretch="Uniform" RenderTransformOrigin="0.35,0.65"
+                                                  Margin="-2,-2,0,0"/>
+                                            <Path Data="{StaticResource IconResetScale}"
+                                                  Fill="{DynamicResource BrushWhite}"
+                                                  Width="20" Height="20"
+                                                  Stretch="Uniform" RenderTransformOrigin="0.35,0.65"/>
+                                        </Grid>
+                                    </StackPanel>
+
+                                </Button>
+                                <StackPanel MinWidth="180">
+                                    <TextBlock Text="ПРЕВЬЮ:" FontSize="11" Margin="0,0,0,2"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Slider x:Name="PreviewResolutionSlider"
+                                                Minimum="0.1" Maximum="1" Value="1"
+                                                ValueChanged="PreviewResolutionSlider_ValueChanged"/>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding ElementName=PreviewResolutionSlider, Path=Value, StringFormat=P0}"
+                                                   Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="0,8,8,8">
+                        <StackPanel Margin="10">
+
+                            <Button Style="{StaticResource BigActionButtonStyle}"
+                                    Click="OpenButton_Click" Margin="0,0,0,6">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Path Data="{StaticResource IconOpenFile}"
+                                      Fill="{DynamicResource BrushWhite}"
+                                      Width="20" Height="20"
+                                      Stretch="Uniform"
+                                      Margin="0,0,8,0"
+                                      VerticalAlignment="Center"/>
+                                    <TextBlock Text="ОТКРЫТЬ ФАЙЛ..." VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource BigActionButtonStyle}"
+                                    Click="SaveButton_Click" Margin="0,0,0,18">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Path Data="{StaticResource IconSaveFile}"
+                                      Fill="{DynamicResource BrushWhite}"
+                                      Width="20" Height="20"
+                                      Stretch="Uniform"
+                                      Margin="0,0,8,0"
+                                      VerticalAlignment="Center"/>
+                                    <TextBlock Text="СОХРАНИТЬ КАК..." VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <TextBlock Text="РЕЖИМ ЭФФЕКТА:" Style="{StaticResource SectionHeaderStyle}"/>
+                            <ComboBox x:Name="ModeComboBox"
+                                      SelectionChanged="ModeComboBox_SelectionChanged"
+                                      Margin="0,6,0,16">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   TextTrimming="CharacterEllipsis">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource BrushWhite}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsHighlighted, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource BrushBlack}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <StackPanel x:Name="EffectParametersPanel"/>
+
+                            <Separator Margin="0,16,0,14"/>
+
+                            <TextBlock Text="ОБЩАЯ ПРЕДОБРАБОТКА:" Style="{StaticResource SectionHeaderStyle}"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <TextBlock Text="Устранение JPEG-блочности (медиана)"
+                                           HorizontalAlignment="Left" TextWrapping="Wrap" Width="220"/>
+                                <TextBlock Text="{Binding ElementName=MedianRadiusSlider, Path=Value, StringFormat=F0}"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider x:Name="MedianRadiusSlider" Minimum="0" Maximum="8" Value="3" ValueChanged="Param_Changed"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <TextBlock Text="Сглаживание (blur radius)" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{Binding ElementName=BlurRadiusSlider, Path=Value, StringFormat=F0}"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider x:Name="BlurRadiusSlider" Minimum="0" Maximum="15" Value="3" ValueChanged="Param_Changed"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <TextBlock Text="Обрезка чёрного (тени)" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{Binding ElementName=CutoffSlider, Path=Value, StringFormat=F2}"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider x:Name="CutoffSlider" Minimum="0" Maximum="0.5" Value="0.05" ValueChanged="Param_Changed"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <TextBlock Text="Обрезка белого (блики)" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{Binding ElementName=HighlightCutoffSlider, Path=Value, StringFormat=F2}"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider x:Name="HighlightCutoffSlider" Minimum="0.5" Maximum="1" Value="0.92" ValueChanged="Param_Changed"/>
+
+                            <Separator Margin="0,16,0,14"/>
+
+                            <TextBlock Text="КОНТРАСТ (БОРЬБА С ФОНОМ):" Style="{StaticResource SectionHeaderStyle}"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <TextBlock Text="Центр объекта (яркость)" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{Binding ElementName=ContrastCenterSlider, Path=Value, StringFormat=F2}"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider x:Name="ContrastCenterSlider" Minimum="0" Maximum="1" Value="0.5" ValueChanged="Param_Changed"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <TextBlock Text="Крутизна (подавление фона)" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{Binding ElementName=ContrastSteepnessSlider, Path=Value, StringFormat=F2}"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider x:Name="ContrastSteepnessSlider" Minimum="0.5" Maximum="15" Value="1" ValueChanged="Param_Changed"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <TextBlock Text="Сглаживание после контраста" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{Binding ElementName=PostContrastSmoothSlider, Path=Value, StringFormat=F0}"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider x:Name="PostContrastSmoothSlider" Minimum="0" Maximum="10" Value="2" ValueChanged="Param_Changed"/>
+
+                            <Separator Margin="0,16,0,14"/>
+
+                            <Grid>
+                                <TextBlock Text="Суперсэмплинг" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{Binding ElementName=SupersampleSlider, Path=Value, StringFormat=F0}"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider x:Name="SupersampleSlider" Minimum="1" Maximum="4" Value="3"
+                                    IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="Param_Changed"/>
+
+                            <Separator Margin="0,16,0,14"/>
+
+                            <CheckBox x:Name="GradientMapEnabledCheckBox" Content="Использовать Gradient Map"
+                                      Checked="GradientMapEnabledCheckBox_Changed"
+                                      Unchecked="GradientMapEnabledCheckBox_Changed"/>
+                            <controls:GradientBarControl x:Name="GradientEditor" Margin="0,12,0,0"
+                                                          Visibility="Collapsed"
+                                                          GradientChanged="GradientEditor_GradientChanged"/>
+
+                            <CheckBox x:Name="InvertCheckBox" Content="Инвертировать" Margin="0,16,0,0"
+                                      Checked="Param_Changed" Unchecked="Param_Changed"/>
+
+                            <CheckBox x:Name="GlowEnabledCheckBox" Content="Glow" Margin="0,16,0,0"
+                                      Checked="GlowEnabledCheckBox_Changed"
+                                      Unchecked="GlowEnabledCheckBox_Changed"/>
+                            <StackPanel x:Name="GlowControlsPanel" Visibility="Collapsed">
+                                <Grid Margin="0,14,0,0">
+                                    <TextBlock Text="Радиус" HorizontalAlignment="Left"/>
+                                    <TextBlock Text="{Binding ElementName=GlowRadiusSlider, Path=Value, StringFormat=F0}"
+                                               HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Slider x:Name="GlowRadiusSlider" Minimum="1" Maximum="30" Value="8" ValueChanged="Param_Changed"/>
+
+                                <Grid Margin="0,14,0,0">
+                                    <TextBlock Text="Порог" HorizontalAlignment="Left"/>
+                                    <TextBlock Text="{Binding ElementName=GlowThresholdSlider, Path=Value, StringFormat=F2}"
+                                               HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Slider x:Name="GlowThresholdSlider" Minimum="0" Maximum="1" Value="0.6" ValueChanged="Param_Changed"/>
+
+                                <Grid Margin="0,14,0,0">
+                                    <TextBlock Text="Интенсивность" HorizontalAlignment="Left"/>
+                                    <TextBlock Text="{Binding ElementName=GlowIntensitySlider, Path=Value, StringFormat=F2}"
+                                               HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Slider x:Name="GlowIntensitySlider" Minimum="0" Maximum="2" Value="0.8" ValueChanged="Param_Changed"/>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="10">
-                <Button Content="Открыть..." Click="OpenButton_Click" Margin="0,0,0,5"/>
-                <Button Content="Сохранить..." Click="SaveButton_Click" Margin="0,0,0,15"/>
-
-                <TextBlock Text="Режим эффекта" FontWeight="Bold"/>
-                <ComboBox x:Name="ModeComboBox"
-                          DisplayMemberPath="DisplayName"
-                          SelectionChanged="ModeComboBox_SelectionChanged"
-                          Margin="0,5,0,15"/>
-
-                <StackPanel x:Name="EffectParametersPanel"/>
-
-                <Separator Margin="0,15,0,10"/>
-                <TextBlock Text="Общая предобработка" FontWeight="Bold"/>
-
-                <TextBlock Text="Устранение JPEG-блочности (медиана)" Margin="0,10,0,0"/>
-                <Slider x:Name="MedianRadiusSlider" Minimum="0" Maximum="8" Value="3"
-                        ValueChanged="Param_Changed"/>
-                <TextBlock Text="{Binding ElementName=MedianRadiusSlider, Path=Value, StringFormat=F0}"/>
-
-                <TextBlock Text="Сглаживание (blur radius)" Margin="0,10,0,0"/>
-                <Slider x:Name="BlurRadiusSlider" Minimum="0" Maximum="15" Value="3"
-                        ValueChanged="Param_Changed"/>
-                <TextBlock Text="{Binding ElementName=BlurRadiusSlider, Path=Value, StringFormat=F0}"/>
-
-                <TextBlock Text="Обрезка чёрного (тени)" Margin="0,10,0,0"/>
-                <Slider x:Name="CutoffSlider" Minimum="0" Maximum="0.5" Value="0.05"
-                        ValueChanged="Param_Changed"/>
-                <TextBlock Text="{Binding ElementName=CutoffSlider, Path=Value, StringFormat=F2}"/>
-
-                <TextBlock Text="Обрезка белого (блики)" Margin="0,10,0,0"/>
-                <Slider x:Name="HighlightCutoffSlider" Minimum="0.5" Maximum="1" Value="0.92"
-                        ValueChanged="Param_Changed"/>
-                <TextBlock Text="{Binding ElementName=HighlightCutoffSlider, Path=Value, StringFormat=F2}"/>
-
-                <Separator Margin="0,15,0,10"/>
-                <TextBlock Text="Контраст (борьба с фоном)" FontWeight="Bold"/>
-
-                <TextBlock Text="Центр объекта (яркость)" Margin="0,10,0,0"/>
-                <Slider x:Name="ContrastCenterSlider" Minimum="0" Maximum="1" Value="0.5"
-                        ValueChanged="Param_Changed"/>
-                <TextBlock Text="{Binding ElementName=ContrastCenterSlider, Path=Value, StringFormat=F2}"/>
-
-                <TextBlock Text="Крутизна (подавление фона)" Margin="0,10,0,0"/>
-                <Slider x:Name="ContrastSteepnessSlider" Minimum="0.5" Maximum="15" Value="1"
-                        ValueChanged="Param_Changed"/>
-                <TextBlock Text="{Binding ElementName=ContrastSteepnessSlider, Path=Value, StringFormat=F2}"/>
-
-                <TextBlock Text="Сглаживание после контраста" Margin="0,10,0,0"/>
-                <Slider x:Name="PostContrastSmoothSlider" Minimum="0" Maximum="10" Value="2"
-                        ValueChanged="Param_Changed"/>
-                <TextBlock Text="{Binding ElementName=PostContrastSmoothSlider, Path=Value, StringFormat=F0}"/>
-
-                <Separator Margin="0,15,0,10"/>
-
-                <TextBlock Text="Суперсэмплинг" Margin="0,10,0,0"/>
-                <Slider x:Name="SupersampleSlider" Minimum="1" Maximum="4" Value="3"
-                        IsSnapToTickEnabled="True" TickFrequency="1"
-                        ValueChanged="Param_Changed"/>
-                <TextBlock Text="{Binding ElementName=SupersampleSlider, Path=Value, StringFormat=F0}"/>
-                <Separator Margin="0,15,0,10"/>
-                <CheckBox x:Name="GradientMapEnabledCheckBox" Content="Использовать Gradient Map"
-                          Checked="GradientMapEnabledCheckBox_Changed"
-                          Unchecked="GradientMapEnabledCheckBox_Changed"/>
-                <controls:GradientBarControl x:Name="GradientEditor" Margin="0,10,0,0"
-                              Visibility="Collapsed"
-                              GradientChanged="GradientEditor_GradientChanged"/>
-                <CheckBox x:Name="InvertCheckBox" Content="Инвертировать" Margin="0,15,0,0"
-                          Checked="Param_Changed" Unchecked="Param_Changed"/>
-
-                <CheckBox x:Name="GlowEnabledCheckBox" Content="Glow" Margin="0,15,0,0"
-                          Checked="GlowEnabledCheckBox_Changed" Unchecked="GlowEnabledCheckBox_Changed"/>
-                <StackPanel x:Name="GlowControlsPanel" Visibility="Collapsed">
-                    <TextBlock Text="Радиус" Margin="0,10,0,0"/>
-                    <Slider x:Name="GlowRadiusSlider" Minimum="1" Maximum="30" Value="8"
-                            ValueChanged="Param_Changed"/>
-                    <TextBlock Text="{Binding ElementName=GlowRadiusSlider, Path=Value, StringFormat=F0}"/>
-
-                    <TextBlock Text="Порог" Margin="0,10,0,0"/>
-                    <Slider x:Name="GlowThresholdSlider" Minimum="0" Maximum="1" Value="0.6"
-                            ValueChanged="Param_Changed"/>
-                    <TextBlock Text="{Binding ElementName=GlowThresholdSlider, Path=Value, StringFormat=F2}"/>
-
-                    <TextBlock Text="Интенсивность" Margin="0,10,0,0"/>
-                    <Slider x:Name="GlowIntensitySlider" Minimum="0" Maximum="2" Value="0.8"
-                            ValueChanged="Param_Changed"/>
-                    <TextBlock Text="{Binding ElementName=GlowIntensitySlider, Path=Value, StringFormat=F2}"/>
-                </StackPanel>
-            </StackPanel>
-        </ScrollViewer>
     </Grid>
 </Window>

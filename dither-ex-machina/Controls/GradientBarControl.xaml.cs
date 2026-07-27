@@ -20,6 +20,9 @@ namespace dither_ex_machina.Controls
         private const double MarkerWidth = 16;
         private const double MarkerHeight = 14;
 
+        private static readonly Brush MarkerDefaultStroke = CreateFrozen(0xD6, 0xE7, 0xF3); // белый
+        private static readonly Brush MarkerSelectedStroke = CreateFrozen(0x63, 0xDF, 0xAD); // бирюзовый
+
         private readonly List<GradientStopModel> _stops = new();
         private GradientStopModel _selectedStop;
 
@@ -46,6 +49,13 @@ namespace dither_ex_machina.Controls
         }
 
         public List<GradientStopModel> GetStops() => _stops.OrderBy(s => s.Position).ToList();
+
+        private static Brush CreateFrozen(byte r, byte g, byte b)
+        {
+            var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+            brush.Freeze();
+            return brush;
+        }
 
         private void GradientPreviewBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -118,7 +128,7 @@ namespace dither_ex_machina.Controls
                     new Point(MarkerWidth / 2.0, MarkerHeight)
                 }),
                 Fill = new SolidColorBrush(stop.Color),
-                Stroke = isSelected ? Brushes.DeepSkyBlue : Brushes.Black,
+                Stroke = isSelected ? MarkerSelectedStroke : MarkerDefaultStroke,
                 StrokeThickness = isSelected ? 2 : 1,
                 Width = MarkerWidth,
                 Height = MarkerHeight,
@@ -168,7 +178,7 @@ namespace dither_ex_machina.Controls
                 if (child is not Polygon marker) continue;
                 var stop = (GradientStopModel)marker.Tag;
                 bool isSelected = ReferenceEquals(stop, _selectedStop);
-                marker.Stroke = isSelected ? Brushes.DeepSkyBlue : Brushes.Black;
+                marker.Stroke = isSelected ? MarkerSelectedStroke : MarkerDefaultStroke;
                 marker.StrokeThickness = isSelected ? 2 : 1;
             }
         }

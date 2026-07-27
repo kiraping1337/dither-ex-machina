@@ -6,10 +6,9 @@ using Microsoft.Win32;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -22,6 +21,8 @@ namespace dither_ex_machina
 {
     public partial class MainWindow : Window
     {
+        private readonly CustomChromeController _chromeController;
+
         private byte[] _grayscale;
         private int _width;
         private int _height;
@@ -49,9 +50,34 @@ namespace dither_ex_machina
 
         private readonly Dictionary<string, double> _currentEffectParams = new();
 
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            _chromeController.AttachHwndHook();
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _chromeController.Cleanup();
+            base.OnClosed(e);
+        }
+
+        private void PreviewClipGrid_SizeChanged(object sender, SizeChangedEventArgs e) => _chromeController.OnPreviewClipGridSizeChanged(e);
+
+        private void CardBorder_SizeChanged(object sender, SizeChangedEventArgs e) => _chromeController.OnCardBorderSizeChanged(e);
+
+        private void Window_StateChanged(object sender, EventArgs e) => _chromeController.OnWindowStateChanged();
+
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e) => _chromeController.Minimize();
+
+        private void MaximizeRestoreButton_Click(object sender, RoutedEventArgs e) => _chromeController.MaximizeRestore();
+
+        private void CloseButton_Click(object sender, RoutedEventArgs e) => _chromeController.Close();
+
         public MainWindow()
         {
             InitializeComponent();
+            _chromeController = new CustomChromeController(this, EyeLogo, EyelidTop, EyelidBottom, PupilCanvas, EyePupil, EyePupilTransform, CardBorder, PreviewClipGrid);
 
             GradientEditor.SetStops(new[]
             {
@@ -61,6 +87,7 @@ namespace dither_ex_machina
 
             ModeComboBox.ItemsSource = _effects;
             ModeComboBox.SelectedIndex = 0;
+            _chromeController.Initialize();
         }
 
         private void PreviewBorder_MouseWheel(object sender, MouseWheelEventArgs e)
@@ -79,6 +106,7 @@ namespace dither_ex_machina
 
             PreviewScale.ScaleX = newScale;
             PreviewScale.ScaleY = newScale;
+
             PreviewTranslate.X = posInImage.X - worldPoint.X * newScale;
             PreviewTranslate.Y = posInImage.Y - worldPoint.Y * newScale;
 
@@ -90,7 +118,7 @@ namespace dither_ex_machina
             if (_displayBitmap == null) return;
             _isPanning = true;
             _panStart = e.GetPosition(this);
-            ((Border)sender).CaptureMouse();
+            ((Grid)sender).CaptureMouse();
             e.Handled = true;
         }
 
@@ -204,6 +232,11 @@ namespace dither_ex_machina
             PreviewResolutionSlider.Value = 1.0;
 
             RequestRender();
+
+            if (!_chromeController.IsEyeOpened)
+            {
+                _chromeController.AnimateEyeOpen();
+            }
         }
 
         //переключение режима эффекта
@@ -297,7 +330,6 @@ namespace dither_ex_machina
         }
 
         //gradient map
-
         private void GradientMapEnabledCheckBox_Changed(object sender, RoutedEventArgs e)
         {
             bool enabled = GradientMapEnabledCheckBox.IsChecked == true;
@@ -316,7 +348,6 @@ namespace dither_ex_machina
         {
             RequestRender();
         }
-
 
         private void Param_Changed(object sender, RoutedEventArgs e)
         {
@@ -439,7 +470,6 @@ namespace dither_ex_machina
         }
 
         //сохранение
-
         private async void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             if (_fullResBitmap == null && _displayBitmap == null) return;
@@ -508,7 +538,7 @@ namespace dither_ex_machina
                 bitmapToSave.CopyPixels(pixels, stride, 0);
 
                 using var stream = new FileStream(dlg.FileName, FileMode.Create);
-                var handle = System.Runtime.InteropServices.GCHandle.Alloc(pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+                var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
                 try
                 {
                     using var image = SKImage.FromPixels(new SKImageInfo(width, height, SKColorType.Bgra8888), handle.AddrOfPinnedObject());
