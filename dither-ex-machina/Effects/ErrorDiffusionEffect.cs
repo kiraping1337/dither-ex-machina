@@ -49,12 +49,17 @@ namespace dither_ex_machina.Effects
 
             var kernel = GetKernel(algorithmIndex);
 
-            double[] work = (double[])brightness.Clone();
+            int rows = Math.Min(height, 1 + kernel.Max(tap => tap.Dy));
+            double[] work = new double[rows * width];
+            Array.Copy(brightness, work, work.Length);
+            int[] rowOffsets = new int[1 + kernel.Max(tap => tap.Dy)];
             byte[] output = new byte[width * height];
 
             for (int y = 0; y < height; y++)
             {
-                if (token.IsCancellationRequested) return output;
+                token.ThrowIfCancellationRequested();
+                for (int dy = 0; dy < rowOffsets.Length; dy++) rowOffsets[dy] = (y + dy) % rows * width;
+                int row = rowOffsets[0];
 
                 bool leftToRight = !serpentine || (y % 2 == 0);
                 int xStart = leftToRight ? 0 : width - 1;
@@ -64,7 +69,7 @@ namespace dither_ex_machina.Effects
                 for (int x = xStart; x != xEnd; x += xStep)
                 {
                     int idx = y * width + x;
-                    double oldValue = work[idx];
+                    double oldValue = work[row + x];
                     double newValue = oldValue < 0.5 ? 0.0 : 1.0;
 
                     output[idx] = newValue > 0.5 ? (byte)255 : (byte)0;
@@ -80,9 +85,12 @@ namespace dither_ex_machina.Effects
 
                         if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
 
-                        work[ny * width + nx] += error * tap.Weight;
+                        work[rowOffsets[tap.Dy] + nx] += error * tap.Weight;
                     }
                 }
+
+                if (y + rows < height)
+                    Array.Copy(brightness, (y + rows) * width, work, row, width);
             }
 
             return output;
@@ -101,7 +109,7 @@ namespace dither_ex_machina.Effects
             }
         }
 
-        private static IReadOnlyList<KernelTap> GetKernel(int algorithmIndex)
+        private static KernelTap[] GetKernel(int algorithmIndex)
         {
             switch (algorithmIndex)
             {

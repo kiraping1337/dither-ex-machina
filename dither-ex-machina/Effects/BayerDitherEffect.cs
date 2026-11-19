@@ -31,9 +31,11 @@ namespace dither_ex_machina.Effects
         };
         private static readonly ConcurrentDictionary<int, int[,]> _matrixCache = new();
 
-        public byte ComputePixel(EffectPixelContext ctx)
+        public byte ComputePixel(EffectPixelContext ctx) => Prepare(ctx.Params)(ctx);
+
+        public Func<EffectPixelContext, byte> Prepare(IReadOnlyDictionary<string, double> parameters)
         {
-            int sizeIndex = (int)ctx.Params["MatrixSizeIndex"];
+            int sizeIndex = (int)parameters["MatrixSizeIndex"];
             int n = sizeIndex switch
             {
                 0 => 2,
@@ -44,12 +46,15 @@ namespace dither_ex_machina.Effects
 
             int[,] matrix = GetMatrix(n);
 
-            int mx = ctx.Sx % n;
-            int my = ctx.Sy % n;
+            return ctx =>
+            {
+                int mx = ctx.Sx % n;
+                int my = ctx.Sy % n;
 
-            double threshold = (matrix[my, mx] + 0.5) / (n * n);
+                double threshold = (matrix[my, mx] + 0.5) / (n * n);
 
-            return ctx.Brightness > threshold ? (byte)255 : (byte)0;
+                return ctx.Brightness > threshold ? (byte)255 : (byte)0;
+            };
         }
 
         private static int[,] GetMatrix(int n)

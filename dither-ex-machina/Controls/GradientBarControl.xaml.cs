@@ -215,11 +215,13 @@ namespace dither_ex_machina.Controls
             double newPosition = Math.Clamp(pos.X / width, 0.0, 1.0);
 
             var stop = (GradientStopModel)_draggedMarker.Tag;
+            if (stop.Position == newPosition) return;
             stop.Position = newPosition;
 
             RepositionMarkers();
             UpdateGradientPreview();
             UpdateSelectedStopPanel();
+            GradientChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private void Marker_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)

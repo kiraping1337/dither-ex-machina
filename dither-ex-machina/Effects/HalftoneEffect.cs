@@ -29,33 +29,39 @@ namespace dither_ex_machina.Effects
             Supersample = 2,
             Invert = false
         };
-        public byte ComputePixel(EffectPixelContext ctx)
+        public byte ComputePixel(EffectPixelContext ctx) => Prepare(ctx.Params)(ctx);
+
+        public Func<EffectPixelContext, byte> Prepare(IReadOnlyDictionary<string, double> parameters)
         {
-            double cellSize = ctx.Params["CellSize"];
-            double angleDeg = ctx.Params["Angle"];
-            double maxDotScale = ctx.Params["MaxDotScale"];
+            double cellSize = parameters["CellSize"];
+            double angleDeg = parameters["Angle"];
+            double maxDotScale = parameters["MaxDotScale"];
 
             double rad = angleDeg * Math.PI / 180.0;
             double cos = Math.Cos(rad);
             double sin = Math.Sin(rad);
 
-            double rx = ctx.Sx * cos + ctx.Sy * sin;
-            double ry = -ctx.Sx * sin + ctx.Sy * cos;
-
-            double cellX = Math.Floor(rx / cellSize);
-            double cellY = Math.Floor(ry / cellSize);
-            double centerX = (cellX + 0.5) * cellSize;
-            double centerY = (cellY + 0.5) * cellSize;
-
-            double dx = rx - centerX;
-            double dy = ry - centerY;
-            double dist = Math.Sqrt(dx * dx + dy * dy);
-
-            double darkness = 1.0 - ctx.Brightness;
             double maxRadius = cellSize * 0.5 * maxDotScale;
-            double radius = maxRadius * darkness * ctx.Fade;
 
-            return dist < radius ? (byte)0 : (byte)255;
+            return ctx =>
+            {
+                double rx = ctx.Sx * cos + ctx.Sy * sin;
+                double ry = -ctx.Sx * sin + ctx.Sy * cos;
+
+                double cellX = Math.Floor(rx / cellSize);
+                double cellY = Math.Floor(ry / cellSize);
+                double centerX = (cellX + 0.5) * cellSize;
+                double centerY = (cellY + 0.5) * cellSize;
+
+                double dx = rx - centerX;
+                double dy = ry - centerY;
+                double dist = Math.Sqrt(dx * dx + dy * dy);
+
+                double darkness = 1.0 - ctx.Brightness;
+                double radius = maxRadius * darkness * ctx.Fade;
+
+                return dist < radius ? (byte)0 : (byte)255;
+            };
         }
     }
 }

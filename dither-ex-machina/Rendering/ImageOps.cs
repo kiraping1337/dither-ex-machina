@@ -126,68 +126,54 @@ namespace dither_ex_machina.Rendering
 
             byte[] temp = new byte[src.Length];
             byte[] result = new byte[src.Length];
-            int windowSize = radius * 2 + 1;
-            int maxX = width - 1;
-
-            Parallel.For(0, height, ParallelOptions,
-                () => new int[256],
-                (y, state, histogram) =>
-                {
-                    int rowOffset = y * width;
-                    for (int x = 0; x < width; x++)
-                    {
-                        Array.Clear(histogram, 0, 256);
-                        for (int k = -radius; k <= radius; k++)
-                        {
-                            int xx = x + k < 0 ? 0 : (x + k > maxX ? maxX : x + k);
-                            histogram[src[rowOffset + xx]]++;
-                        }
-                        int medianPos = windowSize / 2;
-                        int count = 0;
-                        for (int v = 0; v < 256; v++)
-                        {
-                            count += histogram[v];
-                            if (count > medianPos)
-                            {
-                                temp[rowOffset + x] = (byte)v;
-                                break;
-                            }
-                        }
-                    }
-                    return histogram;
-                },
-                _ => { });
-
-            int maxY = height - 1;
-            Parallel.For(0, width, ParallelOptions,
-                () => new int[256],
-                (x, state, histogram) =>
-                {
-                    for (int y = 0; y < height; y++)
-                    {
-                        Array.Clear(histogram, 0, 256);
-                        for (int k = -radius; k <= radius; k++)
-                        {
-                            int yy = y + k < 0 ? 0 : (y + k > maxY ? maxY : y + k);
-                            histogram[temp[yy * width + x]]++;
-                        }
-                        int medianPos = windowSize / 2;
-                        int count = 0;
-                        for (int v = 0; v < 256; v++)
-                        {
-                            count += histogram[v];
-                            if (count > medianPos)
-                            {
-                                result[y * width + x] = (byte)v;
-                                break;
-                            }
-                        }
-                    }
-                    return histogram;
-                },
-                _ => { });
-
+            FilterLines(src, temp, width, height, 1, width, radius);
+            FilterLines(temp, result, height, width, width, 1, radius);
             return result;
+        }
+
+        private static void FilterLines(byte[] source, byte[] destination, int length, int lines,
+            int step, int lineStep, int radius)
+        {
+            Parallel.For(0, lines, line =>
+            {
+                int start = line * lineStep;
+                if (radius == 1)
+                {
+                    for (int x = 0; x < length; x++)
+                    {
+                        int a = source[start + Math.Max(0, x - 1) * step];
+                        int b = source[start + x * step];
+                        int c = source[start + Math.Min(length - 1, x + 1) * step];
+                        destination[start + x * step] = (byte)Math.Clamp(c, Math.Min(a, b), Math.Max(a, b));
+                    }
+                    return;
+                }
+
+                Span<int> bins = stackalloc int[256];
+                Span<int> groups = stackalloc int[16];
+                bins.Clear();
+                groups.Clear();
+                for (int k = -radius; k <= radius; k++)
+                {
+                    byte v = source[start + Math.Clamp(k, 0, length - 1) * step];
+                    bins[v]++;
+                    groups[v >> 4]++;
+                }
+                for (int x = 0; x < length; x++)
+                {
+                    int remaining = radius, group = 0;
+                    while (remaining >= groups[group]) remaining -= groups[group++];
+                    int median = group << 4;
+                    while (remaining >= bins[median]) remaining -= bins[median++];
+                    destination[start + x * step] = (byte)median;
+                    byte remove = source[start + Math.Max(0, x - radius) * step];
+                    byte add = source[start + Math.Min(length - 1, x + radius + 1) * step];
+                    bins[remove]--;
+                    groups[remove >> 4]--;
+                    bins[add]++;
+                    groups[add >> 4]++;
+                }
+            });
         }
 
         //билинейный апсемплинг
@@ -205,8 +191,8 @@ namespace dither_ex_machina.Rendering
             {
                 double srcY = sy * scaleY;
                 int y0 = (int)srcY;
-                if (y0 >= height - 1) y0 = height - 2;
-                int y1 = y0 + 1;
+                if (y0 >= height - 1) y0 = Math.Max(0, height - 2);
+                int y1 = Math.Min(y0 + 1, height - 1);
                 double fy = srcY - y0;
 
                 int row0 = y0 * width;
@@ -216,8 +202,8 @@ namespace dither_ex_machina.Rendering
                 {
                     double srcX = sx * scaleX;
                     int x0 = (int)srcX;
-                    if (x0 >= width - 1) x0 = width - 2;
-                    int x1 = x0 + 1;
+                    if (x0 >= width - 1) x0 = Math.Max(0, width - 2);
+                    int x1 = Math.Min(x0 + 1, width - 1);
                     double fx = srcX - x0;
 
                     double b00 = gray[row0 + x0];
@@ -246,8 +232,8 @@ namespace dither_ex_machina.Rendering
             {
                 double srcY = dy * scaleY;
                 int y0 = (int)srcY;
-                if (y0 >= height - 1) y0 = height - 2;
-                int y1 = y0 + 1;
+                if (y0 >= height - 1) y0 = Math.Max(0, height - 2);
+                int y1 = Math.Min(y0 + 1, height - 1);
                 double fy = srcY - y0;
 
                 int row0 = y0 * width;
@@ -257,8 +243,8 @@ namespace dither_ex_machina.Rendering
                 {
                     double srcX = dx * scaleX;
                     int x0 = (int)srcX;
-                    if (x0 >= width - 1) x0 = width - 2;
-                    int x1 = x0 + 1;
+                    if (x0 >= width - 1) x0 = Math.Max(0, width - 2);
+                    int x1 = Math.Min(x0 + 1, width - 1);
                     double fx = srcX - x0;
 
                     double v = gray[row0 + x0] * (1 - fx) * (1 - fy) +
@@ -276,16 +262,15 @@ namespace dither_ex_machina.Rendering
         //контрастная сигмоида
         public static double ApplyContrastCurve(double x, double center, double steepness)
         {
-            double Sigmoid(double v) => 1.0 / (1.0 + Math.Exp(-v));
+            return new ContrastCurve(center, steepness).Apply(x);
+        }
 
-            double lo = Sigmoid((0.0 - center) * steepness);
-            double hi = Sigmoid((1.0 - center) * steepness);
-            double raw = Sigmoid((x - center) * steepness);
-
-            double range = hi - lo;
-            if (range < 1e-9) return x;
-
-            return (raw - lo) / range;
+        internal readonly struct ContrastCurve(double center, double steepness)
+        {
+            private readonly double low = Sigmoid(-center * steepness);
+            private readonly double range = Sigmoid((1 - center) * steepness) - Sigmoid(-center * steepness);
+            private static double Sigmoid(double v) => 1.0 / (1.0 + Math.Exp(-v));
+            public double Apply(double value) => range < 1e-9 ? value : (Sigmoid((value - center) * steepness) - low) / range;
         }
 
         //даунсемплинг с усреднением 
@@ -396,6 +381,11 @@ namespace dither_ex_machina.Rendering
             if (radius <= 0 || intensity <= 0) return gray;
 
             byte[] blurred = BoxBlur(gray, width, height, radius);
+            return BlendGlow(gray, blurred, threshold, intensity);
+        }
+
+        internal static byte[] BlendGlow(byte[] gray, byte[] blurred, double threshold, double intensity)
+        {
             byte[] output = new byte[gray.Length];
 
             Parallel.For(0, gray.Length, ParallelOptions, i =>

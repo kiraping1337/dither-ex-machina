@@ -31,22 +31,27 @@ namespace dither_ex_machina.Effects
             Invert = false
         };
 
-        public byte ComputePixel(EffectPixelContext ctx)
+        public byte ComputePixel(EffectPixelContext ctx) => Prepare(ctx.Params)(ctx);
+
+        public Func<EffectPixelContext, byte> Prepare(IReadOnlyDictionary<string, double> parameters)
         {
-            double levels = ctx.Params["Levels"];
-            double phaseShift = ctx.Params["PhaseShift"];
-            double lineWidthBase = ctx.Params["LineWidth"];
-            double darkBoost = ctx.Params["DarkBoost"];
+            double levels = parameters["Levels"];
+            double phaseShift = parameters["PhaseShift"];
+            double lineWidthBase = parameters["LineWidth"];
+            double darkBoost = parameters["DarkBoost"];
 
-            double phase = ctx.Brightness * levels + phaseShift;
-            double frac = phase - Math.Floor(phase);
-            double distToLine = Math.Min(frac, 1.0 - frac);
+            return ctx =>
+            {
+                double phase = ctx.Brightness * levels + phaseShift;
+                double frac = phase - Math.Floor(phase);
+                double distToLine = Math.Min(frac, 1.0 - frac);
 
-            double lineWidth = Math.Clamp(
-                (lineWidthBase + darkBoost * (1.0 - ctx.Brightness) * 0.5) * ctx.Fade,
-                0.0, 0.49);
+                double lineWidth = Math.Clamp(
+                    (lineWidthBase + darkBoost * (1.0 - ctx.Brightness) * 0.5) * ctx.Fade,
+                    0.0, 0.49);
 
-            return distToLine < lineWidth ? (byte)0 : (byte)255;
+                return distToLine < lineWidth ? (byte)0 : (byte)255;
+            };
         }
     }
 }

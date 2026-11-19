@@ -12,6 +12,9 @@ namespace dither_ex_machina.Rendering
         IReadOnlyList<ParameterDefinition> Parameters { get; }
         RenderSettings DefaultSettings { get; } 
 
+        Func<EffectPixelContext, byte> Prepare(IReadOnlyDictionary<string, double> parameters)
+            => ComputePixel;
+
         byte ComputePixel(EffectPixelContext ctx);
     }
 }

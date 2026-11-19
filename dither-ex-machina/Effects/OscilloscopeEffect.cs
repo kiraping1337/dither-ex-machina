@@ -126,44 +126,8 @@ namespace dither_ex_machina.Effects
                 }
             }
 
-            output = DilateInk(output, width, height, token);
 
             return output;
-        }
-
-        private static byte[] DilateInk(byte[] binary, int width, int height, CancellationToken token)
-        {
-            int r = 0;
-            double r2 = 0.25;
-            byte[] result = new byte[binary.Length];
-
-            Parallel.For(0, height, y =>
-            {
-                if (token.IsCancellationRequested) return;
-                for (int x = 0; x < width; x++)
-                {
-                    bool ink = false;
-                    for (int dy = -r; dy <= r && !ink; dy++)
-                    {
-                        int ny = y + dy;
-                        if (ny < 0 || ny >= height) continue;
-                        int rowBase = ny * width;
-                        for (int dx = -r; dx <= r; dx++)
-                        {
-                            if (dx * dx + dy * dy > r2) continue;
-                            int nx = x + dx;
-                            if (nx < 0 || nx >= width) continue;
-                            if (binary[rowBase + nx] == 0)
-                            {
-                                ink = true;
-                                break;
-                            }
-                        }
-                    }
-                    result[y * width + x] = ink ? (byte)0 : (byte)255;
-                }
-            });
-            return result;
         }
 
         private static double[] BoxBlurDouble(double[] src, int width, int height, int radius)

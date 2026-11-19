@@ -1,4 +1,4 @@
-using dither_ex_machina.Controls;
+﻿using dither_ex_machina.Controls;
 using dither_ex_machina.Effects;
 using dither_ex_machina.Models;
 using dither_ex_machina.Rendering;
@@ -11,6 +11,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -27,15 +28,24 @@ namespace dither_ex_machina
         private int _width;
         private int _height;
 
-        private WriteableBitmap _fullResBitmap;
         private WriteableBitmap _displayBitmap;
         private double _previewResolutionScale = 1.0;
 
         private bool _isPanning;
         private Point _panStart;
 
-        private CancellationTokenSource _cts;
-        private DispatcherTimer _timer;
+        private readonly CancellationTokenSource _lifetime = new();
+        private CancellationTokenSource? _frameStop;
+        private readonly RenderSession _preview = new();
+        private bool _rendering;
+        private long _revision;
+        private long _displayRevision = -1;
+        private bool _qualityDrag;
+        private double _dragScale = 1;
+        private double _lastDragMs;
+        private byte[]? _scaledSource;
+        private byte[]? _scaledGray;
+        private (int Width, int Height) _scaledSize;
 
         private readonly List<IDitherEffect> _effects = new()
         {
@@ -58,6 +68,7 @@ namespace dither_ex_machina
 
         protected override void OnClosed(EventArgs e)
         {
+            _lifetime.Cancel();
             _chromeController.Cleanup();
             base.OnClosed(e);
         }
@@ -85,6 +96,8 @@ namespace dither_ex_machina
                 new GradientStopModel { Position = 1.0, Color = Colors.White },
             });
 
+            AddHandler(Thumb.DragStartedEvent, new DragStartedEventHandler(SliderDragStarted), true);
+            AddHandler(Thumb.DragCompletedEvent, new DragCompletedEventHandler(SliderDragCompleted), true);
             ModeComboBox.ItemsSource = _effects;
             ModeComboBox.SelectedIndex = 0;
             _chromeController.Initialize();
@@ -155,6 +168,7 @@ namespace dither_ex_machina
         {
             if (_grayscale == null) return;
 
+            _frameStop?.Cancel();
             _previewResolutionScale = e.NewValue;
             RequestRender();
         }
@@ -203,6 +217,7 @@ namespace dither_ex_machina
                 source = converted;
             }
 
+            _frameStop?.Cancel();
             _width = source.PixelWidth;
             _height = source.PixelHeight;
 
@@ -219,8 +234,9 @@ namespace dither_ex_machina
                 _grayscale[i] = (byte)(0.299 * r + 0.587 * g + 0.114 * b);
             }
 
-            _fullResBitmap = new WriteableBitmap(_width, _height, 96, 96, PixelFormats.Bgra32, null);
-            _displayBitmap = _fullResBitmap;
+            _lastDragMs = 0;
+            _displayRevision = -1;
+            _displayBitmap = new WriteableBitmap(_width, _height, 96, 96, PixelFormats.Bgra32, null);
             PreviewImage.Source = _displayBitmap;
 
             PreviewScale.ScaleX = 1;
@@ -244,6 +260,8 @@ namespace dither_ex_machina
         {
             if (ModeComboBox.SelectedItem is IDitherEffect effect)
             {
+                _frameStop?.Cancel();
+                _lastDragMs = 0;
                 ApplyDefaultSettingsToUI(effect.DefaultSettings);
                 RebuildParameterPanel(effect);
                 RequestRender();
@@ -354,21 +372,58 @@ namespace dither_ex_machina
             RequestRender();
         }
 
-        private void RequestRender()
+        private void SliderDragStarted(object sender, DragStartedEventArgs e)
         {
-            if (_grayscale == null) return;
+            if (e.OriginalSource is not Thumb thumb) return;
+            DependencyObject? owner = thumb;
+            while (owner != null && owner is not Slider) owner = VisualTreeHelper.GetParent(owner);
+            if (owner is not Slider slider) return;
+            _qualityDrag = slider != PreviewResolutionSlider && slider != GlowRadiusSlider &&
+                slider != GlowThresholdSlider && slider != GlowIntensitySlider && ModeComboBox.SelectedItem is not BayerDitherEffect;
+            _dragScale = _qualityDrag ? InteractiveScale(_lastDragMs) : 1;
+        }
 
-            if (_timer == null)
+        private static double InteractiveScale(double milliseconds)
+        {
+            if (milliseconds <= 50) return 1;
+            return Math.Clamp(Math.Sqrt(33 / milliseconds), 0.125, 1);
+        }
+
+        private void SliderDragCompleted(object sender, DragCompletedEventArgs e)
+        {
+            bool refine = _qualityDrag && _dragScale < 1;
+            _qualityDrag = false;
+            _dragScale = 1;
+            if (refine)
             {
-                _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
-                _timer.Tick += (s, e) =>
-                {
-                    _timer.Stop();
-                    RenderAsync();
-                };
+                _frameStop?.Cancel();
+                RequestRender();
             }
-            _timer.Stop();
-            _timer.Start();
+        }
+
+        private async void RequestRender()
+        {
+            if (_grayscale == null || _lifetime.IsCancellationRequested) return;
+            _revision++;
+            if (_rendering) return;
+            _rendering = true;
+            try
+            {
+                long version;
+                do
+                {
+                    await Dispatcher.Yield(DispatcherPriority.Background);
+                    _lifetime.Token.ThrowIfCancellationRequested();
+                    version = _revision;
+                    using var stop = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+                    _frameStop = stop;
+                    try { await RenderPreviewAsync(version, stop.Token); }
+                    catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
+                    finally { _frameStop = null; }
+                } while (version != _revision);
+            }
+            catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+            finally { _rendering = false; }
         }
 
         private RenderSettings GetCurrentSettings()
@@ -391,88 +446,78 @@ namespace dither_ex_machina
             };
         }
 
-        private async void RenderAsync()
+        private (byte[] r, byte[] g, byte[] b)? GetGradient()
         {
-            if (ModeComboBox.SelectedItem is not IDitherEffect effect) return;
+            if (GradientMapEnabledCheckBox.IsChecked != true) return null;
+            var stops = GradientEditor.GetStops();
+            return stops.Count >= 2 ? new ColorGradient(stops).BuildLut() : null;
+        }
 
-            _cts?.Cancel();
-            _cts = new CancellationTokenSource();
-            var token = _cts.Token;
-
+        private RenderSettings GetSettingsForSize(int width, int height)
+        {
             var settings = GetCurrentSettings();
-            var effectParams = new Dictionary<string, double>(_currentEffectParams);
-
-            (byte[] r, byte[] g, byte[] b)? gradientLut = null;
-            if (GradientMapEnabledCheckBox.IsChecked == true)
-            {
-                var stops = GradientEditor.GetStops();
-                if (stops.Count >= 2)
-                {
-                    gradientLut = new ColorGradient(stops).BuildLut();
-                }
-            }
-
-            int width = _width, height = _height;
-            byte[] gray = _grayscale;
-
             if (settings.GlowEnabled)
             {
-                int refSize = Math.Max(width, height);
-                double scale = Math.Max(1.0, refSize / 1000.0);
-                settings.GlowRadius = Math.Max(1, (int)(settings.GlowRadius * scale));
+                double factor = Math.Max(1.0, Math.Max(width, height) / 1000.0);
+                settings.GlowRadius = Math.Max(1, (int)(settings.GlowRadius * factor));
             }
+            return settings;
+        }
 
-            if (_previewResolutionScale < 1.0)
+        private async Task RenderPreviewAsync(long version, CancellationToken token)
+        {
+            if (ModeComboBox.SelectedItem is not IDitherEffect effect) return;
+            var source = _grayscale;
+            int sourceWidth = _width, sourceHeight = _height;
+            double previewScale = _previewResolutionScale;
+            double dragScale = _dragScale;
+            int width = Math.Max(1, (int)(sourceWidth * previewScale * dragScale));
+            int height = Math.Max(1, (int)(sourceHeight * previewScale * dragScale));
+            var settings = GetSettingsForSize(sourceWidth, sourceHeight);
+            var parameters = new Dictionary<string, double>(_currentEffectParams);
+            if (dragScale < 1)
             {
-                width = Math.Max(1, (int)(_width * _previewResolutionScale));
-                height = Math.Max(1, (int)(_height * _previewResolutionScale));
-                gray = ImageOps.DownsampleBilinear(_grayscale, _width, _height, width, height);
+                foreach (string key in new[] { "CellSize", "Spacing", "LineSpacing", "Displacement", "Smoothness", "PhaseSmoothness" })
+                    if (parameters.ContainsKey(key)) parameters[key] *= dragScale;
+                settings.MedianRadius = (int)Math.Round(settings.MedianRadius * dragScale);
+                settings.BlurRadius = (int)Math.Round(settings.BlurRadius * dragScale);
+                settings.PostContrastSmoothRadius = (int)Math.Round(settings.PostContrastSmoothRadius * dragScale);
+                settings.GlowRadius = (int)Math.Round(settings.GlowRadius * dragScale);
             }
-
-            try
+            var gradient = GetGradient();
+            var timer = Stopwatch.StartNew();
+            var pixels = await Task.Run(() =>
             {
-                byte[] result = await Task.Run(() =>
-                    DitherRenderer.Render(gray, width, height, settings, effect, effectParams, gradientLut, token),
-                    token);
-
-                if (token.IsCancellationRequested) return;
-
-                if (_previewResolutionScale < 1.0)
+                if (_scaledSource != source || _scaledSize != (width, height))
                 {
-                    if (_displayBitmap == null || _displayBitmap.PixelWidth != width || _displayBitmap.PixelHeight != height)
-                    {
-                        _displayBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
-                        PreviewImage.Source = _displayBitmap;
-                    }
-
-                    _displayBitmap.WritePixels(
-                        new Int32Rect(0, 0, width, height),
-                        result, width * 4, 0);
+                    _scaledGray = width == sourceWidth && height == sourceHeight ? source :
+                        ImageOps.DownsampleBilinear(source, sourceWidth, sourceHeight, width, height);
+                    _scaledSource = source;
+                    _scaledSize = (width, height);
                 }
-                else
-                {
-                    if (_fullResBitmap == null || _fullResBitmap.PixelWidth != _width || _fullResBitmap.PixelHeight != _height)
-                    {
-                        _fullResBitmap = new WriteableBitmap(_width, _height, 96, 96, PixelFormats.Bgra32, null);
-                    }
-
-                    _fullResBitmap.WritePixels(
-                        new Int32Rect(0, 0, _width, _height),
-                        result, _width * 4, 0);
-
-                    _displayBitmap = _fullResBitmap;
-                    PreviewImage.Source = _displayBitmap;
-                }
-            }
-            catch (OperationCanceledException)
+                return _preview.Render(_scaledGray!, width, height, settings, effect, parameters, gradient, token);
+            }, token);
+            token.ThrowIfCancellationRequested();
+            if (source != _grayscale || !ReferenceEquals(effect, ModeComboBox.SelectedItem) ||
+                previewScale != _previewResolutionScale || dragScale != _dragScale) return;
+            if (_displayBitmap.PixelWidth != width || _displayBitmap.PixelHeight != height)
             {
+                _displayBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+                PreviewImage.Source = _displayBitmap;
+            }
+            _displayBitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
+            _displayRevision = version;
+            if (_qualityDrag && dragScale == 1)
+            {
+                _lastDragMs = timer.Elapsed.TotalMilliseconds;
+                if (version != _revision) _dragScale = InteractiveScale(_lastDragMs);
             }
         }
 
         //сохранение
         private async void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_fullResBitmap == null && _displayBitmap == null) return;
+            if (_grayscale == null) return;
 
             var dlg = new SaveFileDialog
             {
@@ -480,47 +525,27 @@ namespace dither_ex_machina
             };
             if (dlg.ShowDialog() != true) return;
 
-            byte[] gradientLutR = null, gradientLutG = null, gradientLutB = null;
-            if (GradientMapEnabledCheckBox.IsChecked == true)
+            await SaveImageAsync(dlg.FileName);
+        }
+
+        private async Task SaveImageAsync(string path)
+        {
+            BitmapSource bitmapToSave = _displayBitmap;
+            if (_displayRevision != _revision || _displayBitmap.PixelWidth != _width || _displayBitmap.PixelHeight != _height ||
+                _dragScale != 1 || _previewResolutionScale != 1)
             {
-                var stops = GradientEditor.GetStops();
-                if (stops.Count >= 2)
-                {
-                    var lut = new ColorGradient(stops).BuildLut();
-                    gradientLutR = lut.r;
-                    gradientLutG = lut.g;
-                    gradientLutB = lut.b;
-                }
+                if (ModeComboBox.SelectedItem is not IDitherEffect effect) return;
+                var source = _grayscale;
+                int w = _width, h = _height;
+                var settings = GetSettingsForSize(w, h);
+                var parameters = new Dictionary<string, double>(_currentEffectParams);
+                var gradient = GetGradient();
+                byte[] pixels = await Task.Run(() => DitherRenderer.Render(source, w, h, settings, effect,
+                    parameters, gradient, CancellationToken.None));
+                bitmapToSave = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);
             }
 
-            if (_previewResolutionScale < 1.0)
-            {
-                var settings = GetCurrentSettings();
-                var effectParams = new Dictionary<string, double>(_currentEffectParams);
-                var effect = ModeComboBox.SelectedItem as IDitherEffect;
-
-                (byte[] r, byte[] g, byte[] b)? gradientLut = null;
-                if (gradientLutR != null)
-                {
-                    gradientLut = (gradientLutR, gradientLutG, gradientLutB);
-                }
-
-                byte[] result = await Task.Run(() =>
-                    DitherRenderer.Render(_grayscale, _width, _height, settings, effect, effectParams, gradientLut, CancellationToken.None));
-
-                if (_fullResBitmap == null || _fullResBitmap.PixelWidth != _width || _fullResBitmap.PixelHeight != _height)
-                {
-                    _fullResBitmap = new WriteableBitmap(_width, _height, 96, 96, PixelFormats.Bgra32, null);
-                }
-
-                _fullResBitmap.WritePixels(
-                    new Int32Rect(0, 0, _width, _height),
-                    result, _width * 4, 0);
-            }
-
-            WriteableBitmap bitmapToSave = _fullResBitmap;
-
-            string ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
+            string ext = Path.GetExtension(path).ToLowerInvariant();
             BitmapEncoder encoder = ext switch
             {
                 ".jpg" or ".jpeg" or ".jpe" => new JpegBitmapEncoder(),
@@ -537,7 +562,7 @@ namespace dither_ex_machina
                 byte[] pixels = new byte[stride * height];
                 bitmapToSave.CopyPixels(pixels, stride, 0);
 
-                using var stream = new FileStream(dlg.FileName, FileMode.Create);
+                using var stream = new FileStream(path, FileMode.Create);
                 var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
                 try
                 {
@@ -554,7 +579,7 @@ namespace dither_ex_machina
             {
                 encoder.Frames.Add(BitmapFrame.Create(bitmapToSave));
 
-                using (var fs = new FileStream(dlg.FileName, FileMode.Create))
+                using (var fs = new FileStream(path, FileMode.Create))
                 {
                     encoder.Save(fs);
                 }

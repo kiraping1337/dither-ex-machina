@@ -1,410 +1,230 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Threading;
+﻿namespace dither_ex_machina.Rendering;
 
-namespace dither_ex_machina.Rendering
+public static class DitherRenderer
 {
-    public static class DitherRenderer
+    public static byte[] Render(byte[] grayscale, int width, int height, RenderSettings settings,
+        IDitherEffect effect, IReadOnlyDictionary<string, double> effectParams,
+        (byte[] r, byte[] g, byte[] b)? gradientLut, CancellationToken token)
+        => new RenderSession().Render(grayscale, width, height, settings, effect, effectParams, gradientLut, token);
+}
+
+internal sealed class RenderSession
+{
+    private const int TileSize = 2048;
+    private const long ToneCacheLimit = 384L * 1024 * 1024;
+    private readonly record struct ToneKey(byte[] Source, int Width, int Height, int Median, int Blur,
+        int Samples, double Center, double Steepness, int Smooth, bool Tiled);
+    private readonly record struct EffectKey(IDitherEffect Effect, double Shadow, double Highlight, bool Invert);
+    private readonly record struct Tile(int X, int Y, int W, int H, int Left, int Top, int SourceW, int SourceH);
+
+    private ToneKey toneKey;
+    private byte[]? filtered;
+    private Tile[] tiles = [];
+    private double[]?[]? tones;
+    private EffectKey effectKey;
+    private Dictionary<string, double>? previousParameters;
+    private byte[]? dithered;
+    private byte[]? blurred;
+    private int blurRadius;
+    private byte[]? glow;
+    private (double Threshold, double Intensity) glowKey;
+
+    public byte[] Render(byte[] source, int width, int height, RenderSettings settings,
+        IDitherEffect effect, IReadOnlyDictionary<string, double> parameters,
+        (byte[] r, byte[] g, byte[] b)? gradient, CancellationToken token)
     {
-        private const double FeatherWidth = 0.08;
-        private const int DefaultTileSize = 2048; //количество исходных пикселей на тайл (больше = меньше границ)
-        private const int MinOverlapSrc = 8; // минимальное перекрытие в исходных пикселях
-        private static readonly ParallelOptions ParallelOptions = new() { MaxDegreeOfParallelism = Environment.ProcessorCount };
-
-        public static byte[] Render(
-            byte[] grayscale, int width, int height,
-            RenderSettings settings,
-            IDitherEffect effect,
-            IReadOnlyDictionary<string, double> effectParams,
-            (byte[] r, byte[] g, byte[] b)? gradientLut,
-            CancellationToken token)
+        token.ThrowIfCancellationRequested();
+        var sequential = effect as ISequentialDitherEffect;
+        int samples = sequential != null ? 1 : settings.Supersample;
+        bool tiled = sequential == null && (width > TileSize || height > TileSize);
+        var key = new ToneKey(source, width, height, settings.MedianRadius, settings.BlurRadius,
+            samples, settings.ContrastCenter, settings.ContrastSteepness, settings.PostContrastSmoothRadius, tiled);
+        if (key != toneKey)
         {
-            //общая предобработка тоновой карты
-            byte[] toneMap = grayscale;
-
-            if (settings.MedianRadius > 0)
-                toneMap = ImageOps.MedianFilter(toneMap, width, height, settings.MedianRadius);
-
-            if (settings.BlurRadius > 0)
-                toneMap = ImageOps.BoxBlur(toneMap, width, height, settings.BlurRadius);
-
-            int supersample = effect is ISequentialDitherEffect ? 1 : settings.Supersample;
-
-            int sw = width * supersample;
-            int sh = height * supersample;
-
-            if (effect is ISequentialDitherEffect sequentialEffect)
-            {
-                return RenderSingleTile(toneMap, width, height, sw, sh, supersample, settings, sequentialEffect, effectParams, gradientLut, token);
-            }
-            if (width <= DefaultTileSize && height <= DefaultTileSize)
-            {
-                return RenderSingleTile(toneMap, width, height, sw, sh, supersample, settings, effect, effectParams, gradientLut, token);
-            }
-
-            return RenderTiled(toneMap, width, height, sw, sh, supersample, settings, effect, effectParams, gradientLut, token);
+            toneKey = default;
+            tones = null;
+            filtered = null;
+            dithered = blurred = glow = null;
+            var input = source;
+            if (key.Median > 0) input = ImageOps.MedianFilter(input, width, height, key.Median);
+            token.ThrowIfCancellationRequested();
+            if (key.Blur > 0) input = ImageOps.BoxBlur(input, width, height, key.Blur);
+            token.ThrowIfCancellationRequested();
+            tiles = CreateTiles(key).ToArray();
+            long toneBytes = tiles.Sum(t => (long)t.SourceW * t.SourceH * samples * samples * sizeof(double));
+            tones = toneBytes <= ToneCacheLimit ? new double[]?[tiles.Length] : null;
+            filtered = input;
+            toneKey = key;
         }
 
-        private static byte[] RenderSingleTile(
-            byte[] toneMap, int width, int height,
-            int sw, int sh, int supersample,
-            RenderSettings settings,
-            IDitherEffect effect,
-            IReadOnlyDictionary<string, double> effectParams,
-            (byte[] r, byte[] g, byte[] b)? gradientLut,
-            CancellationToken token)
+        var nextEffect = new EffectKey(effect, settings.ShadowCutoff, settings.HighlightCutoff, settings.Invert);
+        if (dithered == null || nextEffect != effectKey || previousParameters == null ||
+            previousParameters.Count != parameters.Count ||
+            !parameters.All(p => previousParameters.TryGetValue(p.Key, out double v) && v == p.Value))
         {
-            double[] upsampled = ImageOps.UpsampleBilinear(toneMap, width, height, sw, sh);
-
-            Parallel.For(0, sh, ParallelOptions, sy =>
+            var compute = effect.Prepare(parameters);
+            byte[] output = sequential == null ? new byte[checked(width * height)] : Array.Empty<byte>();
+            for (int i = 0; i < tiles.Length; i++)
             {
-                int rowOffset = sy * sw;
-                for (int sx = 0; sx < sw; sx++)
+                token.ThrowIfCancellationRequested();
+                var tile = tiles[i];
+                var tone = tones?[i] ?? PrepareTone(filtered!, key, tile, token);
+                if (tones != null) tones[i] = tone;
+                if (sequential != null)
                 {
-                    int idx = rowOffset + sx;
-                    upsampled[idx] = ImageOps.ApplyContrastCurve(upsampled[idx], settings.ContrastCenter, settings.ContrastSteepness);
-                }
-            });
-
-            if (settings.PostContrastSmoothRadius > 0)
-            {
-                double[] blurred = ImageOps.BoxBlurDouble(upsampled, sw, sh, settings.PostContrastSmoothRadius);
-                upsampled = blurred;
-            }
-
-            byte[] hiRes;
-
-            if (effect is ISequentialDitherEffect sequentialEffect)
-            {
-                double[] clamped = ApplyHardCutoff(upsampled, sw, sh, settings.ShadowCutoff, settings.HighlightCutoff);
-                upsampled = null;
-                hiRes = sequentialEffect.ComputeFullImage(clamped, sw, sh, effectParams, token);
-                clamped = null;
-
-                if (settings.Invert)
-                {
-                    Parallel.For(0, hiRes.Length, ParallelOptions, i => hiRes[i] = (byte)(255 - hiRes[i]));
-                }
-            }
-            else
-            {
-                hiRes = RenderTilePerPixelFull(upsampled, sw, sh, settings, effect, effectParams, token);
-                upsampled = null;
-            }
-
-            byte[] grayOutput = ImageOps.DownsampleGray(hiRes, sw, sh, width, height, supersample);
-            hiRes = null;
-
-            if (settings.GlowEnabled)
-            {
-                grayOutput = ImageOps.ApplyGlow(grayOutput, width, height, settings.GlowRadius, settings.GlowThreshold, settings.GlowIntensity);
-            }
-
-            return gradientLut.HasValue
-                ? ImageOps.ApplyGradientLut(grayOutput, width, height, gradientLut.Value.r, gradientLut.Value.g, gradientLut.Value.b)
-                : ImageOps.GrayToBgra(grayOutput, width, height);
-        }
-        //тайловая обработка для оптимизации рендера
-        private static byte[] RenderTiled(
-            byte[] toneMap, int width, int height,
-            int sw, int sh, int supersample,
-            RenderSettings settings,
-            IDitherEffect effect,
-            IReadOnlyDictionary<string, double> effectParams,
-            (byte[] r, byte[] g, byte[] b)? gradientLut,
-            CancellationToken token)
-        {
-            //размер тайла в исходных пикселях
-            int tileSize = DefaultTileSize;
-            int tilesX = (width + tileSize - 1) / tileSize;
-            int tilesY = (height + tileSize - 1) / tileSize;
-
-            int blurRadius = settings.PostContrastSmoothRadius;
-            int blurOverlapSrc = blurRadius > 0 ? (blurRadius + supersample - 1) / supersample : 0;
-            int overlapSrc = Math.Max(MinOverlapSrc, 1 + blurOverlapSrc + 4);
-
-            byte[] finalOutput = new byte[width * height * 4];
-
-            int totalTiles = tilesY * tilesX;
-            Parallel.For(0, totalTiles, ParallelOptions, tileIdx =>
-            {
-                if (token.IsCancellationRequested) return;
-
-                int ty = tileIdx / tilesX;
-                int tx = tileIdx % tilesX;
-
-                int srcX = tx * tileSize;
-                int srcY = ty * tileSize;
-                int srcW = Math.Min(tileSize, width - srcX);
-                int srcH = Math.Min(tileSize, height - srcY);
-
-                int ovlSrcX = Math.Max(0, srcX - overlapSrc);
-                int ovlSrcY = Math.Max(0, srcY - overlapSrc);
-                int ovlSrcW = Math.Min(width - ovlSrcX, srcW + 2 * overlapSrc);
-                int ovlSrcH = Math.Min(height - ovlSrcY, srcH + 2 * overlapSrc);
-
-                int ssX = ovlSrcX * supersample;
-                int ssY = ovlSrcY * supersample;
-                int ssW = ovlSrcW * supersample;
-                int ssH = ovlSrcH * supersample;
-
-                byte[] tileToneMap = new byte[ovlSrcW * ovlSrcH];
-                for (int y = 0; y < ovlSrcH; y++)
-                {
-                    int srcRow = (ovlSrcY + y) * width + ovlSrcX;
-                    int dstRow = y * ovlSrcW;
-                    Buffer.BlockCopy(toneMap, srcRow, tileToneMap, dstRow, ovlSrcW);
-                }
-
-                double[] upsampled = ImageOps.UpsampleBilinear(tileToneMap, ovlSrcW, ovlSrcH, ssW, ssH);
-                tileToneMap = null;
-
-                for (int i = 0; i < upsampled.Length; i++)
-                {
-                    upsampled[i] = ImageOps.ApplyContrastCurve(upsampled[i], settings.ContrastCenter, settings.ContrastSteepness);
-                }
-
-                if (blurRadius > 0)
-                {
-                    double[] blurred = ImageOps.BoxBlurDouble(upsampled, ssW, ssH, blurRadius);
-                    upsampled = blurred;
-                }
-
-                int validSsX = (srcX - ovlSrcX) * supersample;
-                int validSsY = (srcY - ovlSrcY) * supersample;
-                int validSsW = srcW * supersample;
-                int validSsH = srcH * supersample;
-
-                byte[] tileHiRes = new byte[validSsW * validSsH];
-                RenderTilePerPixel(upsampled, ssW, ssH, validSsX, validSsY, validSsW, validSsH,
-                    ssX, ssY,              
-                    sw, sh,
-                    settings, effect, effectParams, tileHiRes, token);
-                upsampled = null;
-
-                byte[] tileGray = ImageOps.DownsampleGray(tileHiRes, validSsW, validSsH, srcW, srcH, supersample, useParallel: false);
-                tileHiRes = null;
-
-                if (settings.GlowEnabled)
-                {
-                    tileGray = ImageOps.ApplyGlow(tileGray, srcW, srcH, settings.GlowRadius, settings.GlowThreshold, settings.GlowIntensity);
-                }
-
-                int dstBaseY = srcY;
-                int dstBaseX = srcX;
-                if (gradientLut.HasValue)
-                {
-                    byte[] lutR = gradientLut.Value.r;
-                    byte[] lutG = gradientLut.Value.g;
-                    byte[] lutB = gradientLut.Value.b;
-                    for (int y = 0; y < srcH; y++)
+                    var clamped = new double[tone.Length];
+                    Parallel.For(0, height, y =>
                     {
-                        int srcRow = y * srcW;
-                        int dstRow = (dstBaseY + y) * width + dstBaseX;
-                        int dstIdx = dstRow * 4;
-                        for (int x = 0; x < srcW; x++)
+                        int end = (y + 1) * width;
+                        for (int j = y * width; j < end; j++)
+                            clamped[j] = tone[j] < nextEffect.Shadow ? 0 : tone[j] > nextEffect.Highlight ? 1 : tone[j];
+                    });
+                    output = sequential.ComputeFullImage(clamped, width, height, parameters, token);
+                    if (settings.Invert)
+                        Parallel.For(0, height, y =>
                         {
-                            byte v = tileGray[srcRow + x];
-                            finalOutput[dstIdx++] = lutB[v];
-                            finalOutput[dstIdx++] = lutG[v];
-                            finalOutput[dstIdx++] = lutR[v];
-                            finalOutput[dstIdx++] = 255;
+                            for (int j = y * width; j < (y + 1) * width; j++) output[j] = (byte)(255 - output[j]);
+                        });
+                }
+                else
+                    RenderPixels(tone, key, tile, nextEffect, compute, parameters, output, token);
+            }
+            token.ThrowIfCancellationRequested();
+            dithered = output;
+            effectKey = nextEffect;
+            previousParameters = new(parameters);
+            blurred = glow = null;
+        }
+
+        byte[] gray = dithered;
+        if (settings.GlowEnabled && settings.GlowRadius > 0 && settings.GlowIntensity > 0)
+        {
+            if (blurred == null || blurRadius != settings.GlowRadius)
+            {
+                blurred = BlurTiles(gray, width, height, settings.GlowRadius, token);
+                blurRadius = settings.GlowRadius;
+                glow = null;
+            }
+            var blend = (settings.GlowThreshold, settings.GlowIntensity);
+            if (glow == null || glowKey != blend)
+            {
+                glow = ImageOps.BlendGlow(gray, blurred, blend.GlowThreshold, blend.GlowIntensity);
+                glowKey = blend;
+            }
+            gray = glow;
+        }
+        token.ThrowIfCancellationRequested();
+        return gradient is { } lut ? ImageOps.ApplyGradientLut(gray, width, height, lut.r, lut.g, lut.b)
+            : ImageOps.GrayToBgra(gray, width, height);
+    }
+
+    private static IEnumerable<Tile> CreateTiles(ToneKey key)
+    {
+        if (!key.Tiled)
+        {
+            yield return new Tile(0, 0, key.Width, key.Height, 0, 0, key.Width, key.Height);
+            yield break;
+        }
+        int overlap = Math.Max(8, 5 + (key.Smooth + key.Samples - 1) / key.Samples);
+        for (int y = 0; y < key.Height; y += TileSize)
+        for (int x = 0; x < key.Width; x += TileSize)
+        {
+            int w = Math.Min(TileSize, key.Width - x), h = Math.Min(TileSize, key.Height - y);
+            int left = Math.Max(0, x - overlap), top = Math.Max(0, y - overlap);
+            yield return new(x, y, w, h, left, top,
+                Math.Min(key.Width - left, w + 2 * overlap), Math.Min(key.Height - top, h + 2 * overlap));
+        }
+    }
+
+    private static double[] PrepareTone(byte[] source, ToneKey key, Tile tile, CancellationToken token)
+    {
+        byte[] input = key.Tiled ? CopyRegion(source, key.Width, tile.Left, tile.Top, tile.SourceW, tile.SourceH) : source;
+        int sw = checked(tile.SourceW * key.Samples), sh = checked(tile.SourceH * key.Samples);
+        var curve = new ImageOps.ContrastCurve(key.Center, key.Steepness);
+        double[] tone;
+        //при неточном масштабе сохраняем округление билинейной интерполяции
+        if (key.Samples == 1 && sw * (1.0 / sw) == 1 && sh * (1.0 / sh) == 1)
+        {
+            var lut = new double[256];
+            for (int i = 0; i < lut.Length; i++) lut[i] = curve.Apply(i * (1.0 / 255.0));
+            tone = new double[input.Length];
+            Parallel.For(0, sh, new ParallelOptions { CancellationToken = token }, y =>
+            {
+                for (int i = y * sw; i < (y + 1) * sw; i++) tone[i] = lut[input[i]];
+            });
+        }
+        else
+        {
+            tone = ImageOps.UpsampleBilinear(input, tile.SourceW, tile.SourceH, sw, sh);
+            Parallel.For(0, sh, new ParallelOptions { CancellationToken = token }, y =>
+            {
+                for (int i = y * sw; i < (y + 1) * sw; i++) tone[i] = curve.Apply(tone[i]);
+            });
+        }
+        return key.Smooth > 0 ? ImageOps.BoxBlurDouble(tone, sw, sh, key.Smooth) : tone;
+    }
+
+    private static void RenderPixels(double[] tone, ToneKey key, Tile tile, EffectKey effect,
+        Func<EffectPixelContext, byte> compute, IReadOnlyDictionary<string, double> parameters,
+        byte[] output, CancellationToken token)
+    {
+        int ss = key.Samples, stride = tile.SourceW * ss, count = ss * ss;
+        var options = new ParallelOptions { CancellationToken = token };
+        Parallel.For(0, tile.H, options, y =>
+        {
+            var ctx = new EffectPixelContext { Sw = key.Width * ss, Sh = key.Height * ss, Params = parameters };
+            int py = tile.Y + y;
+            for (int x = tile.X; x < tile.X + tile.W; x++)
+            {
+                int sum = 0;
+                for (int dy = 0; dy < ss; dy++)
+                {
+                    ctx.Sy = py * ss + dy;
+                    int start = (ctx.Sy - tile.Top * ss) * stride + (x - tile.Left) * ss;
+                    for (int dx = 0; dx < ss; dx++)
+                    {
+                        double v = tone[start + dx];
+                        byte color;
+                        if (v < effect.Shadow) color = 0;
+                        else if (v > effect.Highlight) color = 255;
+                        else
+                        {
+                            ctx.Sx = x * ss + dx;
+                            ctx.Brightness = v;
+                            double shadowFade = effect.Shadow <= 0 ? 1 : Math.Clamp((v - effect.Shadow) * 12.5, 0, 1);
+                            double highlightFade = effect.Highlight >= 1 ? 1 : Math.Clamp((effect.Highlight - v) * 12.5, 0, 1);
+                            ctx.Fade = Math.Min(shadowFade, highlightFade);
+                            color = compute(ctx);
                         }
+                        sum += effect.Invert ? 255 - color : color;
                     }
                 }
-                else
-                {
-                    for (int y = 0; y < srcH; y++)
-                    {
-                        int srcRow = y * srcW;
-                        int dstRow = (dstBaseY + y) * width + dstBaseX;
-                        int dstIdx = dstRow * 4;
-                        for (int x = 0; x < srcW; x++)
-                        {
-                            byte v = tileGray[srcRow + x];
-                            finalOutput[dstIdx++] = v;
-                            finalOutput[dstIdx++] = v;
-                            finalOutput[dstIdx++] = v;
-                            finalOutput[dstIdx++] = 255;
-                        }
-                    }
-                }
-                tileGray = null;
-            });
+                output[py * key.Width + x] = (byte)(sum / count);
+            }
+        });
+    }
 
-            return finalOutput;
-        }
+    private static byte[] CopyRegion(byte[] source, int stride, int x, int y, int width, int height)
+    {
+        var region = new byte[width * height];
+        for (int row = 0; row < height; row++)
+            Buffer.BlockCopy(source, (y + row) * stride + x, region, row * width, width);
+        return region;
+    }
 
-        private static void RenderTilePerPixel(
-            double[] adjusted, int adjW, int adjH,
-            int validX, int validY, int validW, int validH,
-            int originSsX, int originSsY,   
-            int fullSw, int fullSh,
-            RenderSettings settings,
-            IDitherEffect effect,
-            IReadOnlyDictionary<string, double> effectParams,
-            byte[] output,
-            CancellationToken token)
+    private byte[] BlurTiles(byte[] source, int width, int height, int radius, CancellationToken token)
+    {
+        if (tiles.Length == 1) return ImageOps.BoxBlur(source, width, height, radius);
+        //размываем тайлы отдельно, чтобы сохранить прежний Glow на стыках
+        var result = new byte[source.Length];
+        foreach (var tile in tiles)
         {
-            double shadowCutoff = settings.ShadowCutoff;
-            double highlightCutoff = settings.HighlightCutoff;
-            bool invert = settings.Invert;
-            double invFeatherWidth = 1.0 / FeatherWidth;
-
-            int totalValid = validW * validH;
-
-            Parallel.For(0, totalValid, ParallelOptions, idx =>
-            {
-                if (token.IsCancellationRequested) return;
-
-                int vy = idx / validW;
-                int vx = idx - vy * validW;
-
-                int sy = validY + vy;
-                int sx = validX + vx;
-                int adjIdx = sy * adjW + sx;
-
-                double brightness = adjusted[adjIdx];
-
-                byte color;
-
-                if (brightness < shadowCutoff)
-                {
-                    color = 0;
-                }
-                else if (brightness > highlightCutoff)
-                {
-                    color = 255;
-                }
-                else
-                {
-                    int globalSx = originSsX + sx;
-                    int globalSy = originSsY + sy;
-
-                    double fadeAtShadow = shadowCutoff <= 0.0
-                        ? 1.0
-                        : Clamp01((brightness - shadowCutoff) * invFeatherWidth);
-
-                    double fadeAtHighlight = highlightCutoff >= 1.0
-                        ? 1.0
-                        : Clamp01((highlightCutoff - brightness) * invFeatherWidth);
-
-                    double fade = fadeAtShadow < fadeAtHighlight ? fadeAtShadow : fadeAtHighlight;
-
-                    var ctx = new EffectPixelContext
-                    {
-                        Brightness = brightness,
-                        Fade = fade,
-                        Sx = globalSx,
-                        Sy = globalSy,
-                        Sw = fullSw,
-                        Sh = fullSh,
-                        Params = effectParams
-                    };
-
-                    color = effect.ComputePixel(ctx);
-                }
-
-                if (invert) color = (byte)(255 - color);
-
-                output[idx] = color;
-            });
+            token.ThrowIfCancellationRequested();
+            var region = CopyRegion(source, width, tile.X, tile.Y, tile.W, tile.H);
+            var blur = ImageOps.BoxBlur(region, tile.W, tile.H, radius);
+            for (int row = 0; row < tile.H; row++)
+                Buffer.BlockCopy(blur, row * tile.W, result, (tile.Y + row) * width + tile.X, tile.W);
         }
-
-        private static byte[] RenderTilePerPixelFull(
-            double[] adjusted, int sw, int sh,
-            RenderSettings settings,
-            IDitherEffect effect,
-            IReadOnlyDictionary<string, double> effectParams,
-            CancellationToken token)
-        {
-            int totalPixels = sw * sh;
-            byte[] hiRes = new byte[totalPixels];
-
-            double shadowCutoff = settings.ShadowCutoff;
-            double highlightCutoff = settings.HighlightCutoff;
-            bool invert = settings.Invert;
-            double invFeatherWidth = 1.0 / FeatherWidth;
-
-            Parallel.For(0, totalPixels, ParallelOptions, idx =>
-            {
-                if (token.IsCancellationRequested) return;
-
-                double brightness = adjusted[idx];
-                byte color;
-
-                if (brightness < shadowCutoff)
-                {
-                    color = 0;
-                }
-                else if (brightness > highlightCutoff)
-                {
-                    color = 255;
-                }
-                else
-                {
-                    int sy = idx / sw;
-                    int sx = idx - sy * sw;
-
-                    double fadeAtShadow = shadowCutoff <= 0.0
-                        ? 1.0
-                        : Clamp01((brightness - shadowCutoff) * invFeatherWidth);
-
-                    double fadeAtHighlight = highlightCutoff >= 1.0
-                        ? 1.0
-                        : Clamp01((highlightCutoff - brightness) * invFeatherWidth);
-
-                    double fade = fadeAtShadow < fadeAtHighlight ? fadeAtShadow : fadeAtHighlight;
-
-                    var ctx = new EffectPixelContext
-                    {
-                        Brightness = brightness,
-                        Fade = fade,
-                        Sx = sx,
-                        Sy = sy,
-                        Sw = sw,
-                        Sh = sh,
-                        Params = effectParams
-                    };
-
-                    color = effect.ComputePixel(ctx);
-                }
-
-                if (invert) color = (byte)(255 - color);
-                hiRes[idx] = color;
-            });
-
-            return hiRes;
-        }
-
-        private static double[] ApplyHardCutoff(
-            double[] brightness, int width, int height,
-            double shadowCutoff, double highlightCutoff)
-        {
-            double[] result = new double[brightness.Length];
-
-            Parallel.For(0, height, ParallelOptions, y =>
-            {
-                int rowOffset = y * width;
-                for (int x = 0; x < width; x++)
-                {
-                    int idx = rowOffset + x;
-                    double v = brightness[idx];
-
-                    if (v < shadowCutoff) v = 0.0;
-                    else if (v > highlightCutoff) v = 1.0;
-
-                    result[idx] = v;
-                }
-            });
-
-            return result;
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private static double Clamp01(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
+        return result;
     }
 }
