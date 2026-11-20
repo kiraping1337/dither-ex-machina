@@ -10,12 +10,12 @@ namespace dither_ex_machina.Effects
 {
     public class BayerDitherEffect : IDitherEffect
     {
-        public string DisplayName => "Bayer (упорядоченный дизеринг)";
+        public string DisplayNameKey => "Effect.BayerDither";
 
         public IReadOnlyList<ParameterDefinition> Parameters { get; } = new List<ParameterDefinition>
         {
             new ParameterDefinition("MatrixSizeIndex",
-                "Размер матрицы (0=2x2, 1=4x4, 2=8x8, 3=16x16)", 0, 3, 1, "F0", tickFrequency: 1),
+                "Effect.BayerDither.MatrixSizeIndex", 0, 3, 1, "F0", tickFrequency: 1),
         };
         public RenderSettings DefaultSettings { get; } = new RenderSettings
         {

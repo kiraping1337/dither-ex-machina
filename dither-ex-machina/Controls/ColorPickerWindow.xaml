@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:controls="clr-namespace:dither_ex_machina.Controls"
-        Title="Выбор цвета" Height="480" Width="600"
+        Title="{DynamicResource PickerTitle}" Height="480" Width="600"
+        Language="{DynamicResource UiLanguage}"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         SizeToContent="Height"
         WindowStyle="None"
@@ -29,9 +30,9 @@
             <!--заголовок-->
             <Grid Grid.Row="0" Margin="0,0,0,417" Grid.RowSpan="2">
                 <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
-                    <TextBlock Text="ВЫБОР ЦВЕТА" VerticalAlignment="Center" Margin="14,-2,0,0"
+                    <TextBlock Text="{DynamicResource PickerHeader}" VerticalAlignment="Center" Margin="14,-2,0,0"
                                Foreground="{DynamicResource BrushTurquoise}" FontSize="20" FontWeight="Bold"/>
-                    <TextBlock Text="ВЫБОР ЦВЕТА" VerticalAlignment="Center" Margin="16,0,0,0"
+                    <TextBlock Text="{DynamicResource PickerHeader}" VerticalAlignment="Center" Margin="16,0,0,0"
                                 Foreground="{DynamicResource BrushWhite}" FontSize="20" FontWeight="Bold"/>
                 </Grid>
                 <Button Style="{DynamicResource CaptionCloseButtonStyle}"
@@ -118,7 +119,7 @@
                 </Grid>
 
                 <StackPanel Grid.Column="3" VerticalAlignment="Top">
-                    <TextBlock Text="ОБРАЗЦЫ" Style="{DynamicResource SectionHeaderStyle}" Margin="0,0,0,8"/>
+                    <TextBlock Text="{DynamicResource Swatches}" Style="{DynamicResource SectionHeaderStyle}" Margin="0,0,0,8"/>
                     <Grid Width="140" Height="60">
                         <Grid.RowDefinitions>
                             <RowDefinition/>
@@ -129,7 +130,7 @@
                         <Border Grid.Row="1" x:Name="CurrentColorSwatch" CornerRadius="0,0,3,3"
                                 BorderBrush="{DynamicResource BrushTurquoise}" BorderThickness="1"/>
                     </Grid>
-                    <TextBlock Text="новый / текущий" Foreground="{DynamicResource BrushTurquoiseDim}" FontSize="11" Margin="0,4,0,16"/>
+                    <TextBlock Text="{DynamicResource NewCurrent}" Foreground="{DynamicResource BrushTurquoiseDim}" FontSize="11" Margin="0,4,0,16"/>
 
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -179,7 +180,7 @@
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,25,0,0">
                         <Button Content="OK" Width="80" Margin="0,0,10,0" Click="OkButton_Click" IsDefault="True" controls:ButtonChrome.CornerRadius="3" />
-                        <Button Content="Отмена" Width="80" Click="CancelButton_Click" IsCancel="True" controls:ButtonChrome.CornerRadius="3"/>
+                        <Button Content="{DynamicResource Cancel}" Width="80" Click="CancelButton_Click" IsCancel="True" controls:ButtonChrome.CornerRadius="3"/>
                     </StackPanel>
                 </StackPanel>
             </Grid>

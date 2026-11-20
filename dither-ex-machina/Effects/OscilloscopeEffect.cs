@@ -9,18 +9,18 @@ namespace dither_ex_machina.Effects
 
     public class OscilloscopeEffect : ISequentialDitherEffect
     {
-        public string DisplayName => "Oscilloscope (Осциллограф)";
+        public string DisplayNameKey => "Effect.Oscilloscope";
 
         public IReadOnlyList<ParameterDefinition> Parameters { get; } = new List<ParameterDefinition>
         {
-            new ParameterDefinition("LineSpacing", "Расстояние между линиями (px)", 4, 60, 10, "F0"),
-            new ParameterDefinition("Angle", "Угол линий (0=вертикальные, 90=горизонтальные)", -90, 90, 0, "F0"),        
-            new ParameterDefinition("Displacement", "Сила выгибания (объем)", -100, 100, 30, "F1"),
-            new ParameterDefinition("Smoothness", "Сглаживание формы объекта (px)", 0, 40, 5, "F0"),
-            new ParameterDefinition("Sharpness", "Тонкость линий (больше = тоньше)", 0.1, 10.0, 2.5, "F1"),
-            new ParameterDefinition("Masking", "Скрыть фон (0=линии везде, 1=только на объекте)", 0.0, 1.0, 0.85, "F2"),
+            new ParameterDefinition("LineSpacing", "Effect.Oscilloscope.LineSpacing", 4, 60, 10, "F0"),
+            new ParameterDefinition("Angle", "Effect.Oscilloscope.Angle", -90, 90, 0, "F0"),
+            new ParameterDefinition("Displacement", "Effect.Oscilloscope.Displacement", -100, 100, 30, "F1"),
+            new ParameterDefinition("Smoothness", "Effect.Oscilloscope.Smoothness", 0, 40, 5, "F0"),
+            new ParameterDefinition("Sharpness", "Effect.Oscilloscope.Sharpness", 0.1, 10.0, 2.5, "F1"),
+            new ParameterDefinition("Masking", "Effect.Oscilloscope.Masking", 0.0, 1.0, 0.85, "F2"),
 
-            new ParameterDefinition("PhaseShift", "Сдвиг фазы", 0, 1, 0, "F2"),
+            new ParameterDefinition("PhaseShift", "Effect.Oscilloscope.PhaseShift", 0, 1, 0, "F2"),
 
         };
 

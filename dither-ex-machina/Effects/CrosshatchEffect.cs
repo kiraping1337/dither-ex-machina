@@ -9,13 +9,13 @@ namespace dither_ex_machina.Effects
 {
     public class CrosshatchEffect : IDitherEffect
     {
-        public string DisplayName => "Crosshatch (штриховка)";
+        public string DisplayNameKey => "Effect.Crosshatch";
 
         public IReadOnlyList<ParameterDefinition> Parameters { get; } = new List<ParameterDefinition>
         {
-            new ParameterDefinition("Spacing", "Расстояние между линиями", 2, 40, 10, "F1"),
-            new ParameterDefinition("LineThickness", "Толщина линий", 0.02, 0.5, 0.15, "F2"),
-            new ParameterDefinition("Angle", "Угол наклона (градусы)", 0, 90, 15, "F0"),
+            new ParameterDefinition("Spacing", "Effect.Crosshatch.Spacing", 2, 40, 10, "F1"),
+            new ParameterDefinition("LineThickness", "Effect.Crosshatch.LineThickness", 0.02, 0.5, 0.15, "F2"),
+            new ParameterDefinition("Angle", "Effect.Crosshatch.Angle", 0, 90, 15, "F0"),
         };
         public RenderSettings DefaultSettings { get; } = new RenderSettings
         {

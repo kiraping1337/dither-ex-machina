@@ -273,7 +273,8 @@ namespace dither_ex_machina.Controls
         {
             if (_selectedStop == null) return;
 
-            if (double.TryParse(PositionTextBox.Text, out double percent))
+            if (double.TryParse(PositionTextBox.Text, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.CurrentCulture, out double percent))
             {
                 _selectedStop.Position = Math.Clamp(percent / 100.0, 0, 1);
                 RepositionMarkers();

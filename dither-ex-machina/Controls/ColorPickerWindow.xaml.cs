@@ -86,13 +86,13 @@ namespace dither_ex_machina.Controls
             Color current = SelectedColor;
             NewColorSwatch.Background = new SolidColorBrush(current);
 
-            HTextBox.Text = Math.Round(_hue).ToString(CultureInfo.InvariantCulture);
-            STextBox.Text = Math.Round(_saturation * 100).ToString(CultureInfo.InvariantCulture);
-            VTextBox.Text = Math.Round(_value * 100).ToString(CultureInfo.InvariantCulture);
+            HTextBox.Text = Math.Round(_hue).ToString(CultureInfo.CurrentCulture);
+            STextBox.Text = Math.Round(_saturation * 100).ToString(CultureInfo.CurrentCulture);
+            VTextBox.Text = Math.Round(_value * 100).ToString(CultureInfo.CurrentCulture);
 
-            RTextBox.Text = current.R.ToString(CultureInfo.InvariantCulture);
-            GTextBox.Text = current.G.ToString(CultureInfo.InvariantCulture);
-            BTextBox.Text = current.B.ToString(CultureInfo.InvariantCulture);
+            RTextBox.Text = current.R.ToString(CultureInfo.CurrentCulture);
+            GTextBox.Text = current.G.ToString(CultureInfo.CurrentCulture);
+            BTextBox.Text = current.B.ToString(CultureInfo.CurrentCulture);
 
             HexTextBox.Text = $"{current.R:X2}{current.G:X2}{current.B:X2}";
         }
@@ -180,9 +180,9 @@ namespace dither_ex_machina.Controls
 
         private void ApplyHsvFromTextBoxes()
         {
-            if (!double.TryParse(HTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double h)) h = _hue;
-            if (!double.TryParse(STextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double s)) s = _saturation * 100;
-            if (!double.TryParse(VTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double v)) v = _value * 100;
+            if (!double.TryParse(HTextBox.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out double h)) h = _hue;
+            if (!double.TryParse(STextBox.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out double s)) s = _saturation * 100;
+            if (!double.TryParse(VTextBox.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out double v)) v = _value * 100;
 
             _hue = Math.Clamp(h, 0, 360);
             _saturation = Math.Clamp(s, 0, 100) / 100.0;

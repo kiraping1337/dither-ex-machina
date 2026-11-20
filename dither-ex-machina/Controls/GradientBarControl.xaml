@@ -6,7 +6,7 @@
                 BorderBrush="{DynamicResource BrushTurquoise}" BorderThickness="1"
                 MouseLeftButtonDown="GradientPreviewBorder_MouseLeftButtonDown"
                 Cursor="Hand"
-                ToolTip="Клик - добавить точку градиента"/>
+                ToolTip="{DynamicResource AddStop}"/>
 
         <Canvas x:Name="MarkersCanvas" Height="16" Background="Transparent" Margin="0,2,0,0"/>
 
@@ -22,18 +22,18 @@
                         CornerRadius="3"
                         BorderBrush="{DynamicResource BrushTurquoise}" BorderThickness="1"
                         Margin="0,0,10,0" Cursor="Hand"
-                        ToolTip="Клик - изменить цвет"
+                        ToolTip="{DynamicResource EditColor}"
                         MouseLeftButtonDown="SelectedColorSwatch_MouseLeftButtonDown"/>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Позиция, %:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="{DynamicResource StopPosition}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <TextBox x:Name="PositionTextBox" Width="50" VerticalAlignment="Center"
                              LostFocus="PositionTextBox_LostFocus"
                              KeyDown="PositionTextBox_KeyDown"/>
                 </StackPanel>
             </Grid>
 
-            <Button x:Name="DeleteStopButton" Content="Удалить точку"
+            <Button x:Name="DeleteStopButton" Content="{DynamicResource DeleteStop}"
                     Style="{DynamicResource PillButtonStyle}"
                     HorizontalAlignment="Left"
                     Margin="0,10,0,0"

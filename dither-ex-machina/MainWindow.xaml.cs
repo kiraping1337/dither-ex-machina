@@ -88,6 +88,9 @@ namespace dither_ex_machina
         public MainWindow()
         {
             InitializeComponent();
+            bool russian = ((App)Application.Current).IsRussian;
+            RussianLanguageOption.IsChecked = russian;
+            EnglishLanguageOption.IsChecked = !russian;
             _chromeController = new CustomChromeController(this, EyeLogo, EyelidTop, EyelidBottom, PupilCanvas, EyePupil, EyePupilTransform, CardBorder, PreviewClipGrid);
 
             GradientEditor.SetStops(new[]
@@ -178,7 +181,8 @@ namespace dither_ex_machina
         {
             var dlg = new OpenFileDialog
             {
-                Filter = "Изображения|*.png;*.jpg;*.jpeg;*.jpe;*.bmp;*.webp"
+                Title = (string)FindResource("OpenDialogTitle"),
+                Filter = $"{FindResource("ImageFiles")}|*.png;*.jpg;*.jpeg;*.jpe;*.bmp;*.webp"
             };
             if (dlg.ShowDialog() != true) return;
 
@@ -255,6 +259,27 @@ namespace dither_ex_machina
             }
         }
 
+        private void LanguageOption_Click(object sender, RoutedEventArgs e)
+        {
+            ((App)Application.Current).SetLanguage(sender == RussianLanguageOption);
+        }
+
+        public static readonly DependencyProperty EffectNameKeyProperty = DependencyProperty.RegisterAttached(
+            "EffectNameKey", typeof(string), typeof(MainWindow), new PropertyMetadata(null, EffectNameKeyChanged));
+
+        public static string GetEffectNameKey(DependencyObject element) => (string)element.GetValue(EffectNameKeyProperty);
+
+        public static void SetEffectNameKey(DependencyObject element, string value) => element.SetValue(EffectNameKeyProperty, value);
+
+        private static void EffectNameKeyChanged(DependencyObject element, DependencyPropertyChangedEventArgs e)
+        {
+            if (element is not TextBlock label) return;
+            if (e.NewValue is string key)
+                label.SetResourceReference(TextBlock.TextProperty, key);
+            else
+                label.ClearValue(TextBlock.TextProperty);
+        }
+
         //переключение режима эффекта
         private void ModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -310,10 +335,11 @@ namespace dither_ex_machina
             {
                 var label = new TextBlock
                 {
-                    Text = def.Label,
                     Margin = new Thickness(0, 10, 0, 0),
                     TextWrapping = TextWrapping.Wrap
                 };
+
+                label.SetResourceReference(TextBlock.TextProperty, def.LabelKey);
 
                 var slider = new Slider
                 {
@@ -521,6 +547,7 @@ namespace dither_ex_machina
 
             var dlg = new SaveFileDialog
             {
+                Title = (string)FindResource("SaveDialogTitle"),
                 Filter = "PNG|*.png|JPEG|*.jpg;*.jpeg;*.jpe|BMP|*.bmp|WebP|*.webp"
             };
             if (dlg.ShowDialog() != true) return;

@@ -9,13 +9,13 @@ namespace dither_ex_machina.Effects
 {
     public class HalftoneEffect : IDitherEffect
     {
-        public string DisplayName => "Halftone (растровые точки)";
+        public string DisplayNameKey => "Effect.Halftone";
 
         public IReadOnlyList<ParameterDefinition> Parameters { get; } = new List<ParameterDefinition>
         {
-            new ParameterDefinition("CellSize", "Размер ячейки", 4, 60, 16, "F0"),
-            new ParameterDefinition("Angle", "Угол сетки (градусы)", 0, 90, 15, "F0"),
-            new ParameterDefinition("MaxDotScale", "Макс. размер точки", 0.5, 1.0, 0.95, "F2"),
+            new ParameterDefinition("CellSize", "Effect.Halftone.CellSize", 4, 60, 16, "F0"),
+            new ParameterDefinition("Angle", "Effect.Halftone.Angle", 0, 90, 15, "F0"),
+            new ParameterDefinition("MaxDotScale", "Effect.Halftone.MaxDotScale", 0.5, 1.0, 0.95, "F2"),
         };
         public RenderSettings DefaultSettings { get; } = new RenderSettings
         {

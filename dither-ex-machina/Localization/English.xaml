@@ -1,0 +1,71 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="PreviewResolution">PREVIEW:</sys:String>
+    <sys:String x:Key="OpenImage">OPEN FILE...</sys:String>
+    <sys:String x:Key="SaveImage">SAVE AS...</sys:String>
+    <sys:String x:Key="EffectMode">EFFECT MODE:</sys:String>
+    <sys:String x:Key="Preprocessing">PREPROCESSING:</sys:String>
+    <sys:String x:Key="MedianRadius">Reduce JPEG blocking (median)</sys:String>
+    <sys:String x:Key="BlurRadius">Smoothing (blur radius)</sys:String>
+    <sys:String x:Key="ShadowCutoff">Black point (shadows)</sys:String>
+    <sys:String x:Key="HighlightCutoff">White point (highlights)</sys:String>
+    <sys:String x:Key="Contrast">CONTRAST AND BACKGROUND:</sys:String>
+    <sys:String x:Key="ContrastCenter">Subject brightness (midpoint)</sys:String>
+    <sys:String x:Key="ContrastSteepness">Contrast steepness</sys:String>
+    <sys:String x:Key="PostSmooth">Smoothing after contrast</sys:String>
+    <sys:String x:Key="Supersampling">Supersampling</sys:String>
+    <sys:String x:Key="GradientMap">Use gradient map</sys:String>
+    <sys:String x:Key="Invert">Invert</sys:String>
+    <sys:String x:Key="Glow">Glow</sys:String>
+    <sys:String x:Key="GlowRadius">Radius</sys:String>
+    <sys:String x:Key="GlowThreshold">Threshold</sys:String>
+    <sys:String x:Key="GlowIntensity">Intensity</sys:String>
+    <sys:String x:Key="AddStop">Click to add a gradient stop</sys:String>
+    <sys:String x:Key="EditColor">Click to change the color</sys:String>
+    <sys:String x:Key="StopPosition">Position (%):</sys:String>
+    <sys:String x:Key="DeleteStop">Delete stop</sys:String>
+    <sys:String x:Key="PickerTitle">Color picker</sys:String>
+    <sys:String x:Key="PickerHeader">COLOR PICKER</sys:String>
+    <sys:String x:Key="Swatches">SWATCHES</sys:String>
+    <sys:String x:Key="NewCurrent">new / current</sys:String>
+    <sys:String x:Key="Cancel">Cancel</sys:String>
+    <sys:String x:Key="ImageFiles">Images</sys:String>
+    <sys:String x:Key="OpenDialogTitle">Open image</sys:String>
+    <sys:String x:Key="SaveDialogTitle">Save image as</sys:String>
+    <sys:String x:Key="ResetZoom">Reset zoom</sys:String>
+    <sys:String x:Key="Effect.BayerDither">Bayer (ordered dithering)</sys:String>
+    <sys:String x:Key="Effect.BayerDither.MatrixSizeIndex">Matrix size (0=2x2, 1=4x4, 2=8x8, 3=16x16)</sys:String>
+    <sys:String x:Key="Effect.ErrorDiffusion">Error Diffusion</sys:String>
+    <sys:String x:Key="Effect.ErrorDiffusion.Algorithm">Algorithm (0=Floyd-Steinberg, 1=Atkinson, 2=JJN, 3=Sierra)</sys:String>
+    <sys:String x:Key="Effect.ErrorDiffusion.Serpentine">Serpentine scan (0=off, 1=on)</sys:String>
+    <sys:String x:Key="Effect.ContourLines">Contour Lines</sys:String>
+    <sys:String x:Key="Effect.ContourLines.Levels">Contour levels</sys:String>
+    <sys:String x:Key="Effect.ContourLines.LineWidth">Line width</sys:String>
+    <sys:String x:Key="Effect.ContourLines.PhaseShift">Phase shift</sys:String>
+    <sys:String x:Key="Effect.ContourLines.DarkBoost">Extra width in shadows</sys:String>
+    <sys:String x:Key="Effect.Crosshatch">Crosshatch</sys:String>
+    <sys:String x:Key="Effect.Crosshatch.Spacing">Line spacing</sys:String>
+    <sys:String x:Key="Effect.Crosshatch.LineThickness">Line thickness</sys:String>
+    <sys:String x:Key="Effect.Crosshatch.Angle">Hatching angle (degrees)</sys:String>
+    <sys:String x:Key="Effect.Halftone">Halftone</sys:String>
+    <sys:String x:Key="Effect.Halftone.CellSize">Cell size</sys:String>
+    <sys:String x:Key="Effect.Halftone.Angle">Screen angle (degrees)</sys:String>
+    <sys:String x:Key="Effect.Halftone.MaxDotScale">Maximum dot size</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation">Contour Modulation</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.Levels">Contour levels</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.LineWidth">Line influence width</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.PhaseShift">Line phase shift</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.Amplitude">Modulation strength</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.Falloff">Edge falloff</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.Polarity">Polarity (-1=dark lines, +1=light lines)</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.PhaseSmoothness">Line smoothing (px)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope">Oscilloscope</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.LineSpacing">Line spacing (px)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.Angle">Line angle (0=vertical, 90=horizontal)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.Displacement">Displacement (depth)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.Smoothness">Shape smoothing (px)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.Sharpness">Sharpness (higher = thinner lines)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.Masking">Mask background (0=lines everywhere, 1=subject only)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.PhaseShift">Phase shift</sys:String>
+</ResourceDictionary>

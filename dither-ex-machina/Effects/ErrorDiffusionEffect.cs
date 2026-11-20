@@ -9,18 +9,18 @@ namespace dither_ex_machina.Effects
 {
     public class ErrorDiffusionEffect : ISequentialDitherEffect
     {
-        public string DisplayName => "Error Diffusion (диффузия ошибки)";
+        public string DisplayNameKey => "Effect.ErrorDiffusion";
 
         public IReadOnlyList<ParameterDefinition> Parameters { get; } = new List<ParameterDefinition>
         {
             // 0 = Floyd-Steinberg, 1 = Atkinson, 2 = Jarvis-Judice-Ninke, 3 = Sierra
             new ParameterDefinition("Algorithm",
-                "Алгоритм (0=Floyd-Steinberg, 1=Atkinson, 2=JJN, 3=Sierra)",
+                "Effect.ErrorDiffusion.Algorithm",
                 0, 3, 0, "F0", tickFrequency: 1),
 
             // 0 = обычный порядок построчно, 1 = змейкой (чередование направления)
             new ParameterDefinition("Serpentine",
-                "Змейка (0=выкл, 1=вкл)", 0, 1, 1, "F0", tickFrequency: 1),
+                "Effect.ErrorDiffusion.Serpentine", 0, 1, 1, "F0", tickFrequency: 1),
         };
 
         public RenderSettings DefaultSettings { get; } = new RenderSettings

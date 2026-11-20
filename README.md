@@ -1,5 +1,7 @@
 # Dither Ex Machina
 
+[English](README.en.md) · **Русский**
+
 [![Download](https://img.shields.io/badge/Download-Latest%20Release-2ea44f?style=for-the-badge&logo=github)](https://github.com/kiraping1337/dither-ex-machina/releases)
 
 > Десктопное приложение на **WPF (.NET)** для обработки изображений с использованием различных алгоритмов дизеринга и стилизации.
@@ -36,6 +38,8 @@
 - ⚙️ Изменение параметров каждого эффекта
 
 - 👀 Предпросмотр результата
+
+- 🌐 Переключение между английским (по умолчанию) и русским с помощью переключателя EN / RU
 
 - 💾 Сохранение обработанного изображения в исходном разрешении
   - PNG

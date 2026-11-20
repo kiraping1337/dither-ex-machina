@@ -7,6 +7,7 @@
         xmlns:controls="clr-namespace:dither_ex_machina.Controls"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
+        Language="{DynamicResource UiLanguage}"
         Title="Dither Ex Machina" Height="820" Width="1100"
         MinWidth="780" MinHeight="520"
         WindowStyle="None"
@@ -99,6 +100,18 @@
                     </Grid>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,-5">
+                        <Border BorderBrush="{StaticResource BrushTurquoiseDim}" BorderThickness="1"
+                                CornerRadius="5" Padding="2" Margin="0,0,8,0" VerticalAlignment="Center"
+                                shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="EnglishLanguageOption" Content="EN" GroupName="UiLanguage"
+                                             AutomationProperties.Name="English"
+                                             Style="{StaticResource LanguageOptionStyle}" Click="LanguageOption_Click"/>
+                                <RadioButton x:Name="RussianLanguageOption" Content="RU" GroupName="UiLanguage"
+                                             AutomationProperties.Name="Русский"
+                                             Style="{StaticResource LanguageOptionStyle}" Click="LanguageOption_Click"/>
+                            </StackPanel>
+                        </Border>
                         <Button x:Name="MinimizeButton"
                                 Style="{StaticResource CaptionButtonStyle}"
                                 Click="MinimizeButton_Click"
@@ -186,8 +199,10 @@
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
                                         VerticalAlignment="Top" Margin="10">
-                                <Button Click="ResetZoomButton_Click"
-                                         Margin="0,0,10,0"
+                                <Button x:Name="ResetZoomButton" Click="ResetZoomButton_Click"
+                                        Style="{StaticResource AnimatedActionButtonStyle}"
+                                        ToolTip="{DynamicResource ResetZoom}"
+                                        AutomationProperties.Name="{DynamicResource ResetZoom}" Margin="0,0,10,0"
                                         controls:ButtonChrome.CornerRadius="4">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -205,7 +220,7 @@
 
                                 </Button>
                                 <StackPanel MinWidth="180">
-                                    <TextBlock Text="ПРЕВЬЮ:" FontSize="11" Margin="0,0,0,2"/>
+                                    <TextBlock Text="{DynamicResource PreviewResolution}" FontSize="11" Margin="0,0,0,2"/>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
@@ -226,7 +241,7 @@
                     <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="0,8,8,8">
                         <StackPanel Margin="10">
 
-                            <Button Style="{StaticResource BigActionButtonStyle}"
+                            <Button x:Name="OpenImageButton" Style="{StaticResource BigActionButtonStyle}"
                                     Click="OpenButton_Click" Margin="0,0,0,6">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                     <Path Data="{StaticResource IconOpenFile}"
@@ -235,10 +250,10 @@
                                       Stretch="Uniform"
                                       Margin="0,0,8,0"
                                       VerticalAlignment="Center"/>
-                                    <TextBlock Text="ОТКРЫТЬ ФАЙЛ..." VerticalAlignment="Center"/>
+                                    <TextBlock Text="{DynamicResource OpenImage}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-                            <Button Style="{StaticResource BigActionButtonStyle}"
+                            <Button x:Name="SaveImageButton" Style="{StaticResource BigActionButtonStyle}"
                                     Click="SaveButton_Click" Margin="0,0,0,18">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                     <Path Data="{StaticResource IconSaveFile}"
@@ -247,16 +262,16 @@
                                       Stretch="Uniform"
                                       Margin="0,0,8,0"
                                       VerticalAlignment="Center"/>
-                                    <TextBlock Text="СОХРАНИТЬ КАК..." VerticalAlignment="Center"/>
+                                    <TextBlock Text="{DynamicResource SaveImage}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-                            <TextBlock Text="РЕЖИМ ЭФФЕКТА:" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Text="{DynamicResource EffectMode}" Style="{StaticResource SectionHeaderStyle}"/>
                             <ComboBox x:Name="ModeComboBox"
                                       SelectionChanged="ModeComboBox_SelectionChanged"
                                       Margin="0,6,0,16">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding DisplayName}"
+                                        <TextBlock local:MainWindow.EffectNameKey="{Binding DisplayNameKey}"
                                                    TextTrimming="CharacterEllipsis">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
@@ -277,10 +292,10 @@
 
                             <Separator Margin="0,16,0,14"/>
 
-                            <TextBlock Text="ОБЩАЯ ПРЕДОБРАБОТКА:" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Text="{DynamicResource Preprocessing}" Style="{StaticResource SectionHeaderStyle}"/>
 
                             <Grid Margin="0,14,0,0">
-                                <TextBlock Text="Устранение JPEG-блочности (медиана)"
+                                <TextBlock Text="{DynamicResource MedianRadius}"
                                            HorizontalAlignment="Left" TextWrapping="Wrap" Width="220"/>
                                 <TextBlock Text="{Binding ElementName=MedianRadiusSlider, Path=Value, StringFormat=F0}"
                                            HorizontalAlignment="Right"/>
@@ -288,21 +303,21 @@
                             <Slider x:Name="MedianRadiusSlider" Minimum="0" Maximum="8" Value="3" ValueChanged="Param_Changed"/>
 
                             <Grid Margin="0,14,0,0">
-                                <TextBlock Text="Сглаживание (blur radius)" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{DynamicResource BlurRadius}" HorizontalAlignment="Left"/>
                                 <TextBlock Text="{Binding ElementName=BlurRadiusSlider, Path=Value, StringFormat=F0}"
                                            HorizontalAlignment="Right"/>
                             </Grid>
                             <Slider x:Name="BlurRadiusSlider" Minimum="0" Maximum="15" Value="3" ValueChanged="Param_Changed"/>
 
                             <Grid Margin="0,14,0,0">
-                                <TextBlock Text="Обрезка чёрного (тени)" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{DynamicResource ShadowCutoff}" HorizontalAlignment="Left"/>
                                 <TextBlock Text="{Binding ElementName=CutoffSlider, Path=Value, StringFormat=F2}"
                                            HorizontalAlignment="Right"/>
                             </Grid>
                             <Slider x:Name="CutoffSlider" Minimum="0" Maximum="0.5" Value="0.05" ValueChanged="Param_Changed"/>
 
                             <Grid Margin="0,14,0,0">
-                                <TextBlock Text="Обрезка белого (блики)" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{DynamicResource HighlightCutoff}" HorizontalAlignment="Left"/>
                                 <TextBlock Text="{Binding ElementName=HighlightCutoffSlider, Path=Value, StringFormat=F2}"
                                            HorizontalAlignment="Right"/>
                             </Grid>
@@ -310,24 +325,24 @@
 
                             <Separator Margin="0,16,0,14"/>
 
-                            <TextBlock Text="КОНТРАСТ (БОРЬБА С ФОНОМ):" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Text="{DynamicResource Contrast}" Style="{StaticResource SectionHeaderStyle}"/>
 
                             <Grid Margin="0,14,0,0">
-                                <TextBlock Text="Центр объекта (яркость)" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{DynamicResource ContrastCenter}" HorizontalAlignment="Left"/>
                                 <TextBlock Text="{Binding ElementName=ContrastCenterSlider, Path=Value, StringFormat=F2}"
                                            HorizontalAlignment="Right"/>
                             </Grid>
                             <Slider x:Name="ContrastCenterSlider" Minimum="0" Maximum="1" Value="0.5" ValueChanged="Param_Changed"/>
 
                             <Grid Margin="0,14,0,0">
-                                <TextBlock Text="Крутизна (подавление фона)" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{DynamicResource ContrastSteepness}" HorizontalAlignment="Left"/>
                                 <TextBlock Text="{Binding ElementName=ContrastSteepnessSlider, Path=Value, StringFormat=F2}"
                                            HorizontalAlignment="Right"/>
                             </Grid>
                             <Slider x:Name="ContrastSteepnessSlider" Minimum="0.5" Maximum="15" Value="1" ValueChanged="Param_Changed"/>
 
                             <Grid Margin="0,14,0,0">
-                                <TextBlock Text="Сглаживание после контраста" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{DynamicResource PostSmooth}" HorizontalAlignment="Left"/>
                                 <TextBlock Text="{Binding ElementName=PostContrastSmoothSlider, Path=Value, StringFormat=F0}"
                                            HorizontalAlignment="Right"/>
                             </Grid>
@@ -336,7 +351,7 @@
                             <Separator Margin="0,16,0,14"/>
 
                             <Grid>
-                                <TextBlock Text="Суперсэмплинг" HorizontalAlignment="Left"/>
+                                <TextBlock Text="{DynamicResource Supersampling}" HorizontalAlignment="Left"/>
                                 <TextBlock Text="{Binding ElementName=SupersampleSlider, Path=Value, StringFormat=F0}"
                                            HorizontalAlignment="Right"/>
                             </Grid>
@@ -345,36 +360,36 @@
 
                             <Separator Margin="0,16,0,14"/>
 
-                            <CheckBox x:Name="GradientMapEnabledCheckBox" Content="Использовать Gradient Map"
+                            <CheckBox x:Name="GradientMapEnabledCheckBox" Content="{DynamicResource GradientMap}"
                                       Checked="GradientMapEnabledCheckBox_Changed"
                                       Unchecked="GradientMapEnabledCheckBox_Changed"/>
                             <controls:GradientBarControl x:Name="GradientEditor" Margin="0,12,0,0"
                                                           Visibility="Collapsed"
                                                           GradientChanged="GradientEditor_GradientChanged"/>
 
-                            <CheckBox x:Name="InvertCheckBox" Content="Инвертировать" Margin="0,16,0,0"
+                            <CheckBox x:Name="InvertCheckBox" Content="{DynamicResource Invert}" Margin="0,16,0,0"
                                       Checked="Param_Changed" Unchecked="Param_Changed"/>
 
-                            <CheckBox x:Name="GlowEnabledCheckBox" Content="Glow" Margin="0,16,0,0"
+                            <CheckBox x:Name="GlowEnabledCheckBox" Content="{DynamicResource Glow}" Margin="0,16,0,0"
                                       Checked="GlowEnabledCheckBox_Changed"
                                       Unchecked="GlowEnabledCheckBox_Changed"/>
                             <StackPanel x:Name="GlowControlsPanel" Visibility="Collapsed">
                                 <Grid Margin="0,14,0,0">
-                                    <TextBlock Text="Радиус" HorizontalAlignment="Left"/>
+                                    <TextBlock Text="{DynamicResource GlowRadius}" HorizontalAlignment="Left"/>
                                     <TextBlock Text="{Binding ElementName=GlowRadiusSlider, Path=Value, StringFormat=F0}"
                                                HorizontalAlignment="Right"/>
                                 </Grid>
                                 <Slider x:Name="GlowRadiusSlider" Minimum="1" Maximum="30" Value="8" ValueChanged="Param_Changed"/>
 
                                 <Grid Margin="0,14,0,0">
-                                    <TextBlock Text="Порог" HorizontalAlignment="Left"/>
+                                    <TextBlock Text="{DynamicResource GlowThreshold}" HorizontalAlignment="Left"/>
                                     <TextBlock Text="{Binding ElementName=GlowThresholdSlider, Path=Value, StringFormat=F2}"
                                                HorizontalAlignment="Right"/>
                                 </Grid>
                                 <Slider x:Name="GlowThresholdSlider" Minimum="0" Maximum="1" Value="0.6" ValueChanged="Param_Changed"/>
 
                                 <Grid Margin="0,14,0,0">
-                                    <TextBlock Text="Интенсивность" HorizontalAlignment="Left"/>
+                                    <TextBlock Text="{DynamicResource GlowIntensity}" HorizontalAlignment="Left"/>
                                     <TextBlock Text="{Binding ElementName=GlowIntensitySlider, Path=Value, StringFormat=F2}"
                                                HorizontalAlignment="Right"/>
                                 </Grid>

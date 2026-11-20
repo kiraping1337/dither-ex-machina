@@ -1,0 +1,71 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="PreviewResolution">ПРЕВЬЮ:</sys:String>
+    <sys:String x:Key="OpenImage">ОТКРЫТЬ ФАЙЛ...</sys:String>
+    <sys:String x:Key="SaveImage">СОХРАНИТЬ КАК...</sys:String>
+    <sys:String x:Key="EffectMode">РЕЖИМ ЭФФЕКТА:</sys:String>
+    <sys:String x:Key="Preprocessing">ОБЩАЯ ПРЕДОБРАБОТКА:</sys:String>
+    <sys:String x:Key="MedianRadius">Устранение JPEG-блочности (медиана)</sys:String>
+    <sys:String x:Key="BlurRadius">Сглаживание (blur radius)</sys:String>
+    <sys:String x:Key="ShadowCutoff">Обрезка чёрного (тени)</sys:String>
+    <sys:String x:Key="HighlightCutoff">Обрезка белого (блики)</sys:String>
+    <sys:String x:Key="Contrast">КОНТРАСТ (БОРЬБА С ФОНОМ):</sys:String>
+    <sys:String x:Key="ContrastCenter">Центр объекта (яркость)</sys:String>
+    <sys:String x:Key="ContrastSteepness">Крутизна (подавление фона)</sys:String>
+    <sys:String x:Key="PostSmooth">Сглаживание после контраста</sys:String>
+    <sys:String x:Key="Supersampling">Суперсэмплинг</sys:String>
+    <sys:String x:Key="GradientMap">Использовать Gradient Map</sys:String>
+    <sys:String x:Key="Invert">Инвертировать</sys:String>
+    <sys:String x:Key="Glow">Свечение (Glow)</sys:String>
+    <sys:String x:Key="GlowRadius">Радиус</sys:String>
+    <sys:String x:Key="GlowThreshold">Порог</sys:String>
+    <sys:String x:Key="GlowIntensity">Интенсивность</sys:String>
+    <sys:String x:Key="AddStop">Клик - добавить точку градиента</sys:String>
+    <sys:String x:Key="EditColor">Клик - изменить цвет</sys:String>
+    <sys:String x:Key="StopPosition">Позиция, %:</sys:String>
+    <sys:String x:Key="DeleteStop">Удалить точку</sys:String>
+    <sys:String x:Key="PickerTitle">Выбор цвета</sys:String>
+    <sys:String x:Key="PickerHeader">ВЫБОР ЦВЕТА</sys:String>
+    <sys:String x:Key="Swatches">ОБРАЗЦЫ</sys:String>
+    <sys:String x:Key="NewCurrent">новый / текущий</sys:String>
+    <sys:String x:Key="Cancel">Отмена</sys:String>
+    <sys:String x:Key="ImageFiles">Изображения</sys:String>
+    <sys:String x:Key="OpenDialogTitle">Открыть изображение</sys:String>
+    <sys:String x:Key="SaveDialogTitle">Сохранить изображение как</sys:String>
+    <sys:String x:Key="ResetZoom">Сбросить масштаб</sys:String>
+    <sys:String x:Key="Effect.BayerDither">Bayer (упорядоченный дизеринг)</sys:String>
+    <sys:String x:Key="Effect.BayerDither.MatrixSizeIndex">Размер матрицы (0=2x2, 1=4x4, 2=8x8, 3=16x16)</sys:String>
+    <sys:String x:Key="Effect.ErrorDiffusion">Error Diffusion (диффузия ошибки)</sys:String>
+    <sys:String x:Key="Effect.ErrorDiffusion.Algorithm">Алгоритм (0=Floyd-Steinberg, 1=Atkinson, 2=JJN, 3=Sierra)</sys:String>
+    <sys:String x:Key="Effect.ErrorDiffusion.Serpentine">Змейка (0=выкл, 1=вкл)</sys:String>
+    <sys:String x:Key="Effect.ContourLines">Contour Lines (Изолинии)</sys:String>
+    <sys:String x:Key="Effect.ContourLines.Levels">Количество линий (уровней)</sys:String>
+    <sys:String x:Key="Effect.ContourLines.LineWidth">Толщина линий</sys:String>
+    <sys:String x:Key="Effect.ContourLines.PhaseShift">Сдвиг фазы линий</sys:String>
+    <sys:String x:Key="Effect.ContourLines.DarkBoost">Доп. толщина в тенях</sys:String>
+    <sys:String x:Key="Effect.Crosshatch">Crosshatch (штриховка)</sys:String>
+    <sys:String x:Key="Effect.Crosshatch.Spacing">Расстояние между линиями</sys:String>
+    <sys:String x:Key="Effect.Crosshatch.LineThickness">Толщина линий</sys:String>
+    <sys:String x:Key="Effect.Crosshatch.Angle">Угол наклона (градусы)</sys:String>
+    <sys:String x:Key="Effect.Halftone">Halftone (растровые точки)</sys:String>
+    <sys:String x:Key="Effect.Halftone.CellSize">Размер ячейки</sys:String>
+    <sys:String x:Key="Effect.Halftone.Angle">Угол сетки (градусы)</sys:String>
+    <sys:String x:Key="Effect.Halftone.MaxDotScale">Макс. размер точки</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation">Contour Modulation (Контурная модуляция)</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.Levels">Количество изолиний (уровней)</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.LineWidth">Ширина зоны влияния линии</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.PhaseShift">Сдвиг фазы линий</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.Amplitude">Сила модуляции (интенсивность узора)</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.Falloff">Резкость перехода у краёв линии</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.Polarity">Полярность узора (-1 линии тёмные / +1 линии светлые)</sys:String>
+    <sys:String x:Key="Effect.IsolinesModulation.PhaseSmoothness">Сглаживание линий (px)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope">Oscilloscope (Осциллограф)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.LineSpacing">Расстояние между линиями (px)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.Angle">Угол линий (0=вертикальные, 90=горизонтальные)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.Displacement">Сила выгибания (объем)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.Smoothness">Сглаживание формы объекта (px)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.Sharpness">Тонкость линий (больше = тоньше)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.Masking">Скрыть фон (0=линии везде, 1=только на объекте)</sys:String>
+    <sys:String x:Key="Effect.Oscilloscope.PhaseShift">Сдвиг фазы</sys:String>
+</ResourceDictionary>

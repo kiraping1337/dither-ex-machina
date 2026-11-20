@@ -8,7 +8,7 @@ namespace dither_ex_machina.Rendering
 {
     public interface IDitherEffect
     {
-        string DisplayName { get; }
+        string DisplayNameKey { get; }
         IReadOnlyList<ParameterDefinition> Parameters { get; }
         RenderSettings DefaultSettings { get; } 
 

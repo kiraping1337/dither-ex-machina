@@ -5,6 +5,9 @@
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Localization/English.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
 
             <!--ЦВЕТОВАЯ ПАЛИТРА-->
             <Color x:Key="ColorWhite">#D6E7F3</Color>
@@ -86,6 +89,28 @@
                 <Setter Property="FontSize" Value="14"/>
             </Style>
 
+            <Style TargetType="ToolTip">
+                <Setter Property="Background" Value="{StaticResource BrushBlack}"/>
+                <Setter Property="Foreground" Value="{StaticResource BrushWhite}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource BrushTurquoiseDim}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="8,5"/>
+                <Setter Property="FontFamily" Value="{StaticResource MainFont}"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToolTip">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}" CornerRadius="4">
+                                <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!--SEPARATOR-->
             <Style TargetType="Separator">
                 <Setter Property="Background" Value="Transparent"/>
@@ -138,36 +163,72 @@
                 </Setter>
             </Style>
 
-            <!--BIG ACTION BUTTON ("Открыть"/"Сохранить")-->
-            <Style x:Key="BigActionButtonStyle" TargetType="Button">
-                <Setter Property="FontFamily" Value="{StaticResource MainFont}"/>
-                <Setter Property="Foreground" Value="{StaticResource BrushWhite}"/>
-                <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="FontSize" Value="19"/>
-                <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                <Setter Property="Padding" Value="0,4"/>
+            <Style x:Key="AnimatedActionButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}">
-                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                   VerticalAlignment="Center"
-                                                   Margin="{TemplateBinding Padding}"
-                                                   TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{TemplateBinding controls:ButtonChrome.CornerRadius}">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualStateGroup.Transitions>
+                                            <VisualTransition GeneratedDuration="0:0:0.12"/>
+                                            <VisualTransition To="Pressed" GeneratedDuration="0:0:0.06"/>
+                                        </VisualStateGroup.Transitions>
+                                        <VisualState x:Name="Normal"/>
+                                        <VisualState x:Name="MouseOver">
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="actionGlow" Storyboard.TargetProperty="Opacity"
+                                                                 To="0.13" Duration="0"/>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="actionGlow" Storyboard.TargetProperty="Opacity"
+                                                                 To="0.24" Duration="0"/>
+                                                <DoubleAnimation Storyboard.TargetName="actionScale" Storyboard.TargetProperty="ScaleX"
+                                                                 To="0.95" Duration="0"/>
+                                                <DoubleAnimation Storyboard.TargetName="actionScale" Storyboard.TargetProperty="ScaleY"
+                                                                 To="0.95" Duration="0"/>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="actionContent" Storyboard.TargetProperty="Opacity"
+                                                                 To="0.45" Duration="0"/>
+                                            </Storyboard>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <Grid>
+                                    <Border x:Name="actionGlow" Background="{StaticResource BrushTurquoise}"
+                                            CornerRadius="{TemplateBinding controls:ButtonChrome.CornerRadius}"
+                                            IsHitTestVisible="False" Opacity="0"/>
+                                    <ContentPresenter x:Name="actionContent"
+                                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                       VerticalAlignment="Center" Margin="{TemplateBinding Padding}"
+                                                       RenderTransformOrigin="0.5,0.5"
+                                                       TextElement.Foreground="{TemplateBinding Foreground}">
+                                        <ContentPresenter.RenderTransform>
+                                            <ScaleTransform x:Name="actionScale"/>
+                                        </ContentPresenter.RenderTransform>
+                                    </ContentPresenter>
+                                </Grid>
                             </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Foreground" Value="{StaticResource BrushTurquoise}"/>
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Foreground" Value="{StaticResource BrushTurquoiseDim}"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
+            </Style>
+
+            <!--BIG ACTION BUTTON ("Открыть"/"Сохранить")-->
+            <Style x:Key="BigActionButtonStyle" TargetType="Button" BasedOn="{StaticResource AnimatedActionButtonStyle}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="FontSize" Value="19"/>
+                <Setter Property="Padding" Value="0,4"/>
+                <Setter Property="controls:ButtonChrome.CornerRadius" Value="4"/>
             </Style>
 
             <!--PILL BUTTON ("Удалить точку")-->
@@ -210,6 +271,39 @@
             </Style>
 
             <!--КНОПКИ УПРАВЛЕНИЯ ОКНОМ-->
+            <Style x:Key="LanguageOptionStyle" TargetType="RadioButton">
+                <Setter Property="FontFamily" Value="{StaticResource MainFont}"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Foreground" Value="{StaticResource BrushWhite}"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Padding" Value="8,2"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="segment" Background="{TemplateBinding Background}"
+                                    BorderBrush="Transparent" BorderThickness="1" CornerRadius="3">
+                                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="segment" Property="Background" Value="#1B2422"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="segment" Property="Background" Value="{StaticResource BrushTurquoise}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource BrushBlack}"/>
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="segment" Property="BorderBrush" Value="{StaticResource BrushWhite}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style x:Key="CaptionButtonStyle" TargetType="Button">
                 <Setter Property="Width" Value="34"/>
                 <Setter Property="Height" Value="28"/>

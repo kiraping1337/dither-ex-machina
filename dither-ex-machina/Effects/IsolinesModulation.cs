@@ -8,17 +8,17 @@ namespace dither_ex_machina.Effects
 {
     public class IsolinesModulation : ISequentialDitherEffect
     {
-        public string DisplayName => "Contour Modulation (Контурная модуляция)";
+        public string DisplayNameKey => "Effect.IsolinesModulation";
 
         public IReadOnlyList<ParameterDefinition> Parameters { get; } = new List<ParameterDefinition>
         {
-            new ParameterDefinition("Levels", "Количество изолиний (уровней)", 2, 30, 8, "F1"),
-            new ParameterDefinition("LineWidth", "Ширина зоны влияния линии", 0.05, 0.5, 0.25, "F2"),
-            new ParameterDefinition("PhaseShift", "Сдвиг фазы линий", 0, 1, 0, "F2"),
-            new ParameterDefinition("Amplitude", "Сила модуляции (интенсивность узора)", 0.0, 0.45, 0.22, "F2"),
-            new ParameterDefinition("Falloff", "Резкость перехода у краёв линии", 0.5, 6.0, 2.0, "F2"),
-            new ParameterDefinition("Polarity", "Полярность узора (-1 линии тёмные / +1 линии светлые)", -1, 1, 1, "F1"),
-            new ParameterDefinition("PhaseSmoothness", "Сглаживание линий (px)", 0, 25, 4, "F0"),
+            new ParameterDefinition("Levels", "Effect.IsolinesModulation.Levels", 2, 30, 8, "F1"),
+            new ParameterDefinition("LineWidth", "Effect.IsolinesModulation.LineWidth", 0.05, 0.5, 0.25, "F2"),
+            new ParameterDefinition("PhaseShift", "Effect.IsolinesModulation.PhaseShift", 0, 1, 0, "F2"),
+            new ParameterDefinition("Amplitude", "Effect.IsolinesModulation.Amplitude", 0.0, 0.45, 0.22, "F2"),
+            new ParameterDefinition("Falloff", "Effect.IsolinesModulation.Falloff", 0.5, 6.0, 2.0, "F2"),
+            new ParameterDefinition("Polarity", "Effect.IsolinesModulation.Polarity", -1, 1, 1, "F1"),
+            new ParameterDefinition("PhaseSmoothness", "Effect.IsolinesModulation.PhaseSmoothness", 0, 25, 4, "F0"),
         };
 
         public RenderSettings DefaultSettings { get; } = new RenderSettings

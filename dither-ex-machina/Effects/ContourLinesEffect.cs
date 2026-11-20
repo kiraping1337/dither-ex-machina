@@ -9,14 +9,14 @@ namespace dither_ex_machina.Effects
 {
     public class ContourLinesEffect : IDitherEffect
     {
-        public string DisplayName => "Contour Lines (Изолинии)";
+        public string DisplayNameKey => "Effect.ContourLines";
 
         public IReadOnlyList<ParameterDefinition> Parameters { get; } = new List<ParameterDefinition>
         {
-            new ParameterDefinition("Levels", "Количество линий (уровней)", 2, 40, 10, "F1"),
-            new ParameterDefinition("LineWidth", "Толщина линий", 0.02, 0.4, 0.18, "F2"),
-            new ParameterDefinition("PhaseShift", "Сдвиг фазы линий", 0, 1, 0, "F2"),
-            new ParameterDefinition("DarkBoost", "Доп. толщина в тенях", 0, 1, 0.15, "F2"),
+            new ParameterDefinition("Levels", "Effect.ContourLines.Levels", 2, 40, 10, "F1"),
+            new ParameterDefinition("LineWidth", "Effect.ContourLines.LineWidth", 0.02, 0.4, 0.18, "F2"),
+            new ParameterDefinition("PhaseShift", "Effect.ContourLines.PhaseShift", 0, 1, 0, "F2"),
+            new ParameterDefinition("DarkBoost", "Effect.ContourLines.DarkBoost", 0, 1, 0.15, "F2"),
         };
         public RenderSettings DefaultSettings { get; } = new RenderSettings
         {
