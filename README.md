@@ -1,30 +1,30 @@
 # Dither Ex Machina
 
-[English](README.en.md) · **Русский**
+**English** · [Русский](README.ru.md)
 
 [![Download](https://img.shields.io/badge/Download-Latest%20Release-2ea44f?style=for-the-badge&logo=github)](https://github.com/kiraping1337/dither-ex-machina/releases)
 
-> Десктопное приложение на **WPF (.NET)** для обработки изображений с использованием различных алгоритмов дизеринга и стилизации.
+> A **WPF (.NET)** desktop application for processing images with various dithering and stylization algorithms.
 
-## О проекте
+## About the project
 
-**Dither Ex Machina** – это приложение, позволяющее преобразовывать обычные изображения в стилизованные версии с помощью различных алгоритмов дизеринга.
+**Dither Ex Machina** is an application that uses various dithering algorithms to turn ordinary images into stylized versions of the originals.
 
-Предпросмотр обновляется прямо во время перетаскивания ползунков и маркеров градиента. Если кадр рассчитывается долго, приложение может временно снизить разрешение предпросмотра. После отпускания ползунка оно возвращается к выбранному разрешению.
+The preview updates as you drag sliders and gradient stops. If a frame takes a long time to render, the application can temporarily lower the preview resolution. When you release the slider, the preview returns to the selected resolution.
 
-Проект был разработан с упором на чистую архитектуру и расширяемость: каждый эффект реализован как отдельный модуль и может быть легко добавлен в систему без изменения существующей логики.
+The project was designed with a focus on clean architecture and extensibility. Each effect is a separate module, making it easy to add effects to the system without changing the existing logic.
 
 ---
 
-## Возможности
+## Features
 
-- 📂 Загрузка изображений
+- 📂 Load images
   - PNG
   - JPG / JPEG
   - BMP
   - WebP
 
-- 🔧 Несколько алгоритмов обработки
+- 🔧 Multiple image processing algorithms
   - Bayer Dithering
   - Error Diffusion
   - Halftone
@@ -33,15 +33,15 @@
   - Contour Modulation
   - Oscilloscope
 
-- 🎴 Настраиваемая карта градиента и Glow эффект
+- 🎴 Adjustable gradient map and Glow effect
 
-- ⚙️ Изменение параметров каждого эффекта
+- ⚙️ Adjust the settings for each effect
 
-- 👀 Предпросмотр результата
+- 👀 Preview the result
 
-- 🌐 Переключение между английским (по умолчанию) и русским с помощью переключателя EN / RU
+- 🌐 Switch between English (the default) and Russian using the EN / RU switch
 
-- 💾 Сохранение обработанного изображения в исходном разрешении
+- 💾 Save the processed image at its original resolution
   - PNG
   - JPEG
   - BMP
@@ -49,23 +49,23 @@
 
 ---
 
-## Алгоритмы
+## Algorithms
 
 ### Bayer Dithering
 
-Классический упорядоченный дизеринг с использованием матрицы Байера.
+Classic ordered dithering using a Bayer matrix.
 
-Подходит для получения характерного "ретро" изображения с регулярным расположением пикселей.
+A regular arrangement of pixels gives the image a distinctive retro look.
 
-Есть возможность выбрать матрицу 2х2, 4х4, 8х8 и 16х16
+You can choose a 2×2, 4×4, 8×8, or 16×16 matrix.
 
 ## ![Bayer](img/bayer.jpg)
 
 ### Error Diffusion
 
-Алгоритм диффузии ошибки распределяет ошибку квантования между соседними пикселями.
+The error diffusion algorithm distributes quantization error among neighboring pixels.
 
-Есть возможность выбрать алгоритм (Floyd-Steinberg, Atkinson, Jarvis-Judice-Ninke и Sierra)
+You can choose from the Floyd–Steinberg, Atkinson, Jarvis–Judice–Ninke, and Sierra algorithms.
 
 ![ErrorDiffusion](img/error_diffusion.jpg)
 
@@ -73,9 +73,9 @@
 
 ### Halftone
 
-Имитация печатного растра при помощи точек различного размера.
+This effect simulates a printed halftone using dots of varying sizes.
 
-Эффект напоминает изображения, используемые в комиксах и манге.
+The result resembles the images used in comics and manga.
 
 ![HalfTone](img/halftone.jpg)
 
@@ -83,9 +83,9 @@
 
 ### Contour Lines
 
-Преобразует изображение в систему контурных линий, подчеркивающих изменение яркости.
+This effect turns the image into a set of contour lines that highlight changes in brightness.
 
-Эффект напоминает топографические карты.
+The result resembles a topographic map.
 
 ![ContourLine](img/isolines.jpg)
 
@@ -93,7 +93,7 @@
 
 ### Crosshatch
 
-Создает изображение при помощи системы штрихов различной плотности.
+This effect creates an image using strokes of varying density.
 
 ![CrossHatch](img/crosshatch.jpg)
 
@@ -101,31 +101,31 @@
 
 ### Oscilloscope
 
-Искажает сетку параллельных линий на основе карты яркости изображения, создавая объёмный рельеф.
+This effect uses the image’s brightness map to distort a grid of parallel lines, creating a three-dimensional relief.
 
-Эффект напоминает сигналы осциллографа, CRT-дисплеи и 3D-сканы в стиле ретрофутуризма.
+The result resembles oscilloscope traces, CRT displays, and retrofuturistic 3D scans.
 
 ## ![Oscilloscope](img/oscilloscope.jpg)
 
 ### Contour Modulation
 
-Внедряет изолинии яркости в структуру дизеринга, модулируя порог квантования вдоль контуров объекта.
+This effect incorporates lines of equal brightness into the dither pattern by varying the quantization threshold along the subject’s contours.
 
-Эффект напоминает оттиски на банкнотах и книжные иллюстрации.
+The result resembles printed designs on banknotes and illustrations in books.
 
 ![Contour Modulation](img/contour_modulation.jpg)
 
-## Структура проекта
+## Project structure
 
 ```
 dither-ex-machina
 │
-├── Controls/      # Пользовательские элементы интерфейса
-├── Fonts/         # Шрифты
-├── Effects/       # Реализация эффектов дизеринга
-├── Models/        # Модели данных
-├── Rendering/     # Ядро обработки изображений
-├── Utils/         # Вспомогательные классы
+├── Controls/      # Custom UI controls
+├── Fonts/         # Fonts
+├── Effects/       # Dithering effect implementations
+├── Models/        # Data models
+├── Rendering/     # Image processing core
+├── Utils/         # Helper classes
 │
 ├── MainWindow.xaml
 ├── MainWindow.xaml.cs
@@ -135,7 +135,7 @@ dither-ex-machina
 
 ---
 
-## Используемые технологии
+## Technologies used
 
 - C#
 - WPF
@@ -145,26 +145,26 @@ dither-ex-machina
 
 ---
 
-## Архитектура
+## Architecture
 
-Каждый эффект реализует общий интерфейс обработки изображения, благодаря чему:
+Each effect implements a common image processing interface. This has three benefits.
 
-- эффекты независимы друг от друга;
-- можно легко добавлять новые алгоритмы;
-- пользовательский интерфейс автоматически отображает параметры выбранного эффекта.
+- Effects are independent of one another.
+- New algorithms are easy to add.
+- The user interface automatically displays the settings for the selected effect.
 
-Основная логика обработки находится отдельно от интерфейса, что делает проект удобным для сопровождения и дальнейшего развития.
+The main image processing logic is separate from the user interface, making the project easier to maintain and extend.
 
 ---
 
-## Как собрать проект
+## How to build the project
 
-### Требования
+### Requirements
 
-- Windows и .NET 10 SDK.
-- Для работы в Visual Studio — Visual Studio 2026 (18.0 или новее) с рабочей нагрузкой «Разработка классических приложений .NET». [Требования Microsoft](https://learn.microsoft.com/ru-ru/dotnet/core/install/windows)
+- Windows and the .NET 10 SDK.
+- To work in Visual Studio, use Visual Studio 2026 (18.0 or later) with the **.NET desktop development** workload. [Microsoft requirements](https://learn.microsoft.com/en-us/dotnet/core/install/windows)
 
-### Запуск
+### Run
 
 ```powershell
 git clone https://github.com/kiraping1337/dither-ex-machina.git
@@ -172,4 +172,4 @@ cd dither-ex-machina
 dotnet run --project ./dither-ex-machina/dither-ex-machina.csproj -c Release
 ```
 
-Для запуска из Visual Studio откройте `dither-ex-machina.sln` и нажмите `F5`.
+To run from Visual Studio, open `dither-ex-machina.sln` and press `F5`.
