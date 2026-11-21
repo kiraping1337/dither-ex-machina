@@ -51,6 +51,14 @@ The project was designed with a focus on clean architecture and extensibility. E
 
 ## Algorithms
 
+### Oscilloscope
+
+This effect uses the image’s brightness map to distort a grid of parallel lines, creating a three-dimensional relief.
+
+The result resembles oscilloscope traces, CRT displays, and retrofuturistic 3D scans.
+
+## ![Oscilloscope](img/oscilloscope.jpg)
+
 ### Bayer Dithering
 
 Classic ordered dithering using a Bayer matrix.
@@ -98,14 +106,6 @@ This effect creates an image using strokes of varying density.
 ![CrossHatch](img/crosshatch.jpg)
 
 ---
-
-### Oscilloscope
-
-This effect uses the image’s brightness map to distort a grid of parallel lines, creating a three-dimensional relief.
-
-The result resembles oscilloscope traces, CRT displays, and retrofuturistic 3D scans.
-
-## ![Oscilloscope](img/oscilloscope.jpg)
 
 ### Contour Modulation
 
